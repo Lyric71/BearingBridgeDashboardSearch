@@ -1,16 +1,17 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { marked } from 'marked';
-import { readFileSync, readdirSync, existsSync } from 'fs';
 import { join } from 'path';
+import { projects, projectDir, readMdFiles, ROOT } from '../../lib/projects';
 
-const reportsDir = join(process.cwd(), '..', 'seo', 'reports');
-const files = existsSync(reportsDir)
-  ? readdirSync(reportsDir).filter(f => f.endsWith('.md')).sort()
-  : [];
-
-const groups = files.map(f => {
-  const raw = readFileSync(join(reportsDir, f), 'utf8');
+// Per project: data/projects/<id>/competitors/*.md (a SERP report per keyword group).
+// Beyond Border Group falls back to the original seo/reports/*.md.
+function loadReports(id: string) {
+  let files = readMdFiles(join(projectDir(id), 'competitors'));
+  if (files.length === 0 && id === 'beyondbordergroup') {
+    files = readMdFiles(join(ROOT, 'seo', 'reports'));
+  }
+  return files.map(({ file: f, raw }) => {
   const lines = raw.split('\n');
 
   // Extract title from first heading
@@ -48,22 +49,28 @@ const groups = files.map(f => {
     scoreHtml: marked(scoreSection),
     stats: { page1: bbgPage1, page2: bbgPage2, missing: bbgMissing, total: tableLines.length },
   };
-});
+  });
+}
+
+const byProject = projects.map(p => ({ ...p, groups: loadReports(p.id) }));
 ---
-<Layout title="Competitors">
+<Layout title="Competitors" scoped>
   <div class="mb-8">
     <a href="/" class="text-sm text-gray-400 hover:text-gray-600 mb-4 inline-block">&larr; Dashboard</a>
     <h1 class="text-3xl font-bold mb-2" style="color: var(--bbg-red)">⚔️ Competitor Rankings</h1>
-    <p class="text-gray-500">{groups.length} keyword groups · BBG vs top 10 competitors per group · google.com</p>
+    <p class="text-gray-500">SERP rank tracking vs top 10 competitors per keyword group · <span data-active-project-name>this project</span></p>
   </div>
 
-  <!-- BBG Overview strip -->
+  {byProject.map(p => {
+    const groups = p.groups;
+    return (
+    <div data-project-panel={p.id} class="hidden">
   {groups.length > 0 && (
     <div class="grid grid-cols-3 gap-3 mb-10">
       {[
         { label: 'Groups tracked', value: groups.length, color: 'var(--bbg-blue)' },
         { label: 'Reports generated', value: groups.length, color: 'var(--bbg-gray-dark)' },
-        { label: 'Biggest threat', value: 'eggsist.com', color: 'var(--bbg-red)' },
+        { label: 'Keywords scored', value: groups.reduce((s, g) => s + g.stats.total, 0), color: 'var(--bbg-red)' },
       ].map(s => (
         <div class="rounded-3xl p-5 border border-gray-100 text-center" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05)">
           <div class="text-2xl font-bold mb-1" style={`color: ${s.color}`}>{s.value}</div>
@@ -74,8 +81,9 @@ const groups = files.map(f => {
   )}
 
   {groups.length === 0 ? (
-    <div class="rounded-3xl border border-dashed border-gray-200 p-12 text-center text-gray-400">
-      No reports yet. Run <code>python seo/scripts/group_report.py</code>
+    <div class="rounded-3xl border border-dashed border-gray-200 p-12 text-center">
+      <div class="text-gray-400 mb-1">No competitor reports for <span class="font-semibold" style={`color: ${p.color}`}>{p.name}</span> yet.</div>
+      <div class="text-xs text-gray-400">Add <code>data/projects/{p.id}/competitors/*.md</code></div>
     </div>
   ) : (
     groups.map(g => (
@@ -122,6 +130,9 @@ const groups = files.map(f => {
       </details>
     ))
   )}
+    </div>
+    );
+  })}
 </Layout>
 
 <style>

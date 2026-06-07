@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python sem/scripts/export_keyword_performance.py)"
+    ]
+  }
+}

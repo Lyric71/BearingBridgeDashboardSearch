@@ -1,15 +1,15 @@
 ---
 import '../styles/global.css';
-interface Props { title: string; }
-const { title } = Astro.props;
+import { projects } from '../lib/projects';
+interface Props { title: string; scoped?: boolean; }
+const { title, scoped = false } = Astro.props;
 const nav = [
   { label: 'Dashboard', href: '/' },
-  { label: 'Keywords', href: '/topics/keywords' },
-  { label: 'Competitors', href: '/topics/competitors' },
-  { label: 'Ads', href: '/topics/ads' },
-  { label: 'Report', href: '/sem/report' },
-  { label: 'Content', href: '/topics/content' },
-  { label: '🇬🇧 EN', href: '/lang/en' },
+  { label: 'GTM Kanban', href: '/gtm' },
+  { label: 'Keywords', href: '/seo/keywords' },
+  { label: 'Competitors', href: '/seo/competitors' },
+  { label: 'Google Ads', href: '/sem/ads' },
+  { label: 'Click Report', href: '/sem/report' },
 ];
 const current = Astro.url.pathname;
 ---
@@ -26,7 +26,7 @@ const current = Astro.url.pathname;
     <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
       <a href="/">
         <img
-          src="https://beyondbordergroup.com/wp-content/uploads/2024/11/Logo-Beyond-Litho.png"
+          src="/logo.svg"
           alt="Beyond Border Group"
           class="h-8 w-auto"
         />
@@ -47,6 +47,26 @@ const current = Astro.url.pathname;
         ))}
       </nav>
     </div>
+
+    <!-- Project context bar: the project is the top-level entry -->
+    <div class="border-t border-gray-100" style="background: #fafafa">
+      <div class="max-w-7xl mx-auto px-6 py-2.5 flex items-center gap-3">
+        <span class="text-xs font-semibold uppercase tracking-widest" style="color: var(--bbg-gray-muted)">Project</span>
+        <div class="relative">
+          <span id="project-dot" class="absolute left-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full" style="background: var(--bbg-gray-dark)"></span>
+          <select
+            id="project-select"
+            class="appearance-none text-sm font-semibold rounded-lg border border-gray-200 bg-white pl-8 pr-9 py-1.5 cursor-pointer hover:border-gray-400 focus:outline-none focus:border-gray-500"
+          >
+            {projects.map(p => (
+              <option value={p.id} data-color={p.color}>{p.name}</option>
+            ))}
+          </select>
+          <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </div>
+        <a href="/gtm" class="text-xs text-gray-400 hover:text-gray-600">Manage projects &rarr;</a>
+      </div>
+    </div>
   </header>
 
   <!-- Page -->
@@ -66,6 +86,53 @@ const current = Astro.url.pathname;
     if (sessionStorage.getItem('bbg_auth') !== 'true') {
       window.location.replace('/login');
     }
+  </script>
+
+  <!-- Global project context: drives every [data-project-panel] on the page -->
+  <script>
+    const PROJECT_KEY = 'bbg_active_project';
+    const select = document.getElementById('project-select') as HTMLSelectElement | null;
+    const dot = document.getElementById('project-dot');
+
+    function ids(): string[] {
+      return select ? Array.from(select.options).map(o => o.value) : [];
+    }
+    function activeId(): string {
+      const saved = localStorage.getItem(PROJECT_KEY);
+      const list = ids();
+      return saved && list.includes(saved) ? saved : (list[0] || '');
+    }
+    function apply(id: string) {
+      if (select) {
+        select.value = id;
+        const opt = select.options[select.selectedIndex];
+        if (dot && opt) dot.style.background = opt.dataset.color || 'var(--bbg-gray-dark)';
+        const name = opt ? opt.text : '';
+        document.querySelectorAll<HTMLElement>('[data-active-project-name]').forEach(el => { el.textContent = name; });
+      }
+      // Show only the active project's panels (pages that aren't scoped have none).
+      document.querySelectorAll<HTMLElement>('[data-project-panel]').forEach(p => {
+        p.classList.toggle('hidden', p.dataset.projectPanel !== id);
+      });
+      // Let scoped pages react (e.g. update headings/empty states if needed).
+      document.dispatchEvent(new CustomEvent('projectchange', { detail: { id } }));
+    }
+
+    if (select) {
+      select.addEventListener('change', () => {
+        localStorage.setItem(PROJECT_KEY, select.value);
+        apply(select.value);
+      });
+    }
+    // Allow other UI (home cards, GTM tabs) to set the active project.
+    document.addEventListener('setproject', (e: any) => {
+      const id = e?.detail?.id;
+      if (!id) return;
+      localStorage.setItem(PROJECT_KEY, id);
+      apply(id);
+    });
+
+    apply(activeId());
   </script>
 </body>
 </html>

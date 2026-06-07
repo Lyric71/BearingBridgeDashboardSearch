@@ -1,5 +1,34 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import KanbanBoard from '../components/KanbanBoard.astro';
+import gtm from '../data/gtm.json';
+
+// Curated SEO/Ads headline metrics — only Beyond Border Group has analytics today.
+const curatedStats: Record<string, { metric: string; value: string; note: string; color: string }[]> = {
+  beyondbordergroup: [
+    { metric: 'Keywords tracked',    value: '160',         note: 'EN across 8 categories',                      color: 'var(--bbg-blue)' },
+    { metric: 'Competitors tracked', value: '27',          note: 'China ecommerce & market entry agencies',     color: 'var(--bbg-red)' },
+    { metric: 'Best rank (EN)',      value: '#2',          note: '"china cross border ecommerce consulting"',   color: 'var(--bbg-orange)' },
+    { metric: 'Page 1 keywords',     value: '0',           note: 'Core consulting terms — all page 2+',         color: 'var(--bbg-gray-muted)' },
+    { metric: 'Biggest opportunity', value: 'Market Entry',note: 'Low competition vs search volume',            color: 'var(--bbg-purple)' },
+  ],
+};
+
+// Per-project status: curated analytics if present, otherwise the project's own
+// GTM build-out signals (never another project's numbers).
+const statusByProject = gtm.projects.map(p => {
+  const done = p.tasks.filter(t => t.status === 'done').length;
+  return {
+    id: p.id,
+    name: p.name,
+    color: p.color,
+    owner: p.owner,
+    channels: p.channels,
+    tasksDone: done,
+    tasksTotal: p.tasks.length,
+    curated: curatedStats[p.id] ?? null,
+  };
+});
 
 const seo = [
   { slug: '/seo/keywords',    label: 'Keywords',    color: 'var(--bbg-blue)',   icon: '🔍', description: 'Keyword audits, volume, difficulty and opportunity mapping.' },
@@ -13,9 +42,18 @@ const sem = [
 ---
 <Layout title="Dashboard">
   <div class="mb-10">
-    <h1 class="text-3xl font-bold mb-2">SEO & Ads Intelligence</h1>
-    <p class="text-gray-500">beyondbordergroup.com · China Ecommerce & Market Entry Consulting</p>
+    <h1 class="text-3xl font-bold mb-2"><span data-active-project-name>Project</span> · SEO &amp; Ads Intelligence</h1>
+    <p class="text-gray-500">Select a project above — every view below is scoped to it.</p>
   </div>
+
+  <!-- GTM Kanban — selected project only -->
+  <section class="mb-10">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xs font-semibold uppercase tracking-widest" style="color: var(--bbg-gray-muted)">GTM Board · <span data-active-project-name>project</span></h2>
+      <a href="/gtm" class="text-xs font-medium hover:underline" style="color: var(--bbg-blue)">Full board &rarr;</a>
+    </div>
+    <KanbanBoard />
+  </section>
 
   <!-- SEO -->
   <section class="mb-10">
@@ -45,22 +83,32 @@ const sem = [
     </div>
   </section>
 
-  <!-- Quick Stats -->
+  <!-- Current Status — scoped to the selected project -->
   <section>
-    <h2 class="text-xs font-semibold uppercase tracking-widest mb-4" style="color: var(--bbg-gray-muted)">Current Status</h2>
-    <div class="rounded-3xl border border-gray-100 overflow-hidden" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05)">
-      <table>
-        <thead>
-          <tr><th>Metric</th><th>Value</th><th>Note</th></tr>
-        </thead>
-        <tbody>
-          <tr><td class="font-medium">Keywords tracked</td><td class="font-bold" style="color: var(--bbg-blue)">160</td><td class="text-gray-400">EN across 8 categories</td></tr>
-          <tr><td class="font-medium">Competitors tracked</td><td class="font-bold" style="color: var(--bbg-red)">27</td><td class="text-gray-400">China ecommerce & market entry agencies</td></tr>
-          <tr><td class="font-medium">BBG best rank (EN)</td><td class="font-bold" style="color: var(--bbg-orange)">#2</td><td class="text-gray-400">"china cross border ecommerce consulting"</td></tr>
-          <tr><td class="font-medium">Page 1 keywords</td><td class="font-bold text-gray-400">0</td><td class="text-gray-400">Core consulting terms — all page 2+</td></tr>
-          <tr><td class="font-medium">Biggest opportunity</td><td class="font-bold" style="color: var(--bbg-purple)">Market Entry</td><td class="text-gray-400">Low competition vs search volume</td></tr>
-        </tbody>
-      </table>
-    </div>
+    <h2 class="text-xs font-semibold uppercase tracking-widest mb-4" style="color: var(--bbg-gray-muted)">Current Status · <span data-active-project-name>project</span></h2>
+    {statusByProject.map(p => (
+      <div data-project-panel={p.id} class="hidden rounded-3xl border border-gray-100 overflow-hidden" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05)">
+        <table>
+          <thead>
+            <tr><th>Metric</th><th>Value</th><th>Note</th></tr>
+          </thead>
+          <tbody>
+            {p.curated ? (
+              p.curated.map(s => (
+                <tr><td class="font-medium">{s.metric}</td><td class="font-bold" style={`color: ${s.color}`}>{s.value}</td><td class="text-gray-400">{s.note}</td></tr>
+              ))
+            ) : (
+              <>
+                <tr><td class="font-medium">GTM tasks done</td><td class="font-bold" style={`color: ${p.color}`}>{p.tasksDone} / {p.tasksTotal}</td><td class="text-gray-400">Go-to-market build-out progress</td></tr>
+                <tr><td class="font-medium">Owner</td><td class="font-bold">{p.owner}</td><td class="text-gray-400">Responsible for execution</td></tr>
+                <tr><td class="font-medium">SEO</td><td class="font-bold" style={`color: ${p.color}`}>{p.channels.seo}</td><td class="text-gray-400">Search channel</td></tr>
+                <tr><td class="font-medium">SEM</td><td class="font-bold" style={`color: ${p.color}`}>{p.channels.sem}</td><td class="text-gray-400">Paid search channel</td></tr>
+                <tr><td class="font-medium">Analytics</td><td class="font-bold text-gray-400">Not connected</td><td class="text-gray-400">No keyword / rank / click data yet for this project</td></tr>
+              </>
+            )}
+          </tbody>
+        </table>
+      </div>
+    ))}
   </section>
 </Layout>

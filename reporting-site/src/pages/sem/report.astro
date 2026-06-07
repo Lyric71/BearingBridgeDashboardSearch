@@ -1,175 +1,184 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { projects, projectDir, readJsonIfExists, ROOT } from '../../lib/projects';
 
-// Load performance data from JSON export
-const dataPath = join(process.cwd(), '..', 'data', 'google_ads_performance.json');
-let data: any = null;
-let error = '';
-
-try {
-  if (existsSync(dataPath)) {
-    data = JSON.parse(readFileSync(dataPath, 'utf-8'));
-  } else {
-    error = 'No performance data found. Run: python sem/scripts/export_keyword_performance.py';
+// Per project: data/projects/<id>/google_ads_performance.json
+// Beyond Border Group falls back to the original data/google_ads_performance.json.
+function loadPerf(id: string): any {
+  let data = readJsonIfExists<any>(join(projectDir(id), 'google_ads_performance.json'));
+  if (!data && id === 'beyondbordergroup') {
+    data = readJsonIfExists<any>(join(ROOT, 'data', 'google_ads_performance.json'));
   }
-} catch (e) {
-  error = 'No performance data found. Run: python sem/scripts/export_keyword_performance.py';
+  return data;
 }
 
-const tfKeys = data ? Object.keys(data.timeframes) : [];
+const byProject = projects.map(p => ({ ...p, data: loadPerf(p.id) }));
+
 const fmt = (n: number) => n.toLocaleString('en-US');
 const fmtCost = (n: number) => n.toFixed(2);
 const colors = ['#2563eb', '#16a34a', '#e8562a'];
 ---
-<Layout title="Keyword Performance">
+<Layout title="Click Report" scoped>
   <div class="mb-8">
     <a href="/" class="text-sm text-gray-400 hover:text-gray-600 mb-4 inline-block">&larr; Dashboard</a>
     <h1 class="text-3xl font-bold mb-2" style="color: var(--bbg-orange)">Keyword Click Report</h1>
-    {!data && <p class="text-red-500 text-sm">{error}</p>}
-    {data && <p class="text-gray-400 text-sm">Account {data.account} · Exported {data.date}</p>}
+    <p class="text-gray-400 text-sm">Clicks, impressions &amp; cost per keyword · <span data-active-project-name>this project</span></p>
   </div>
 
-  {data && (
-    <!-- Timeframe tabs -->
-    <div class="flex gap-2 mb-6" id="tf-tabs">
-      {tfKeys.map((key, i) => {
+  {byProject.map(p => {
+    const data = p.data;
+    const tfKeys = data ? Object.keys(data.timeframes) : [];
+    return (
+    <div data-project-panel={p.id} class="hidden">
+      {!data ? (
+        <div class="rounded-3xl border border-dashed border-gray-200 p-12 text-center">
+          <div class="text-gray-400 mb-1">No click data for <span class="font-semibold" style={`color: ${p.color}`}>{p.name}</span> yet.</div>
+          <div class="text-xs text-gray-400">Export to <code>data/projects/{p.id}/google_ads_performance.json</code></div>
+        </div>
+      ) : (
+      <>
+      <p class="text-gray-400 text-sm mb-6">Account {data.account} · Exported {data.date}</p>
+
+      <!-- Timeframe tabs (scoped to this project) -->
+      <div class="flex gap-2 mb-6 tf-tabs" data-tf-scope={p.id}>
+        {tfKeys.map((key, i) => {
+          const tf = data.timeframes[key];
+          return (
+            <button
+              data-tf={key}
+              class={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${i === 0 ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}
+            >
+              {tf.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {tfKeys.map((key, ti) => {
         const tf = data.timeframes[key];
         return (
-          <button
-            data-tf={key}
-            class={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${i === 0 ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}
-          >
-            {tf.label}
-          </button>
-        );
-      })}
-    </div>
+          <div data-tf-panel={key} data-tf-owner={p.id} class={ti === 0 ? '' : 'hidden'}>
+            <p class="text-gray-500 text-sm mb-6">
+              {tf.label}: {tf.date_from} to {tf.date_to} · {fmt(tf.totals.keywords)} keywords · {fmt(tf.totals.clicks)} clicks · {data.currency} {fmtCost(tf.totals.cost)} spend · Avg CPC {data.currency} {fmtCost(tf.totals.avg_cpc)}
+            </p>
 
-    <!-- One panel per timeframe -->
-    {tfKeys.map((key, ti) => {
-      const tf = data.timeframes[key];
-      return (
-        <div data-tf-panel={key} class={ti === 0 ? '' : 'hidden'}>
-          <!-- Subtitle -->
-          <p class="text-gray-500 text-sm mb-6">
-            {tf.label}: {tf.date_from} to {tf.date_to} · {fmt(tf.totals.keywords)} keywords · {fmt(tf.totals.clicks)} clicks · {data.currency} {fmtCost(tf.totals.cost)} spend · Avg CPC {data.currency} {fmtCost(tf.totals.avg_cpc)}
-          </p>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+              <div class="rounded-2xl border border-gray-100 p-5" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05)">
+                <div class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Clicks</div>
+                <div class="text-2xl font-bold" style="color: var(--bbg-blue)">{fmt(tf.totals.clicks)}</div>
+              </div>
+              <div class="rounded-2xl border border-gray-100 p-5" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05)">
+                <div class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Impressions</div>
+                <div class="text-2xl font-bold" style="color: var(--bbg-purple)">{fmt(tf.totals.impressions)}</div>
+              </div>
+              <div class="rounded-2xl border border-gray-100 p-5" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05)">
+                <div class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Spend</div>
+                <div class="text-2xl font-bold" style="color: var(--bbg-red)">{data.currency} {fmtCost(tf.totals.cost)}</div>
+              </div>
+              <div class="rounded-2xl border border-gray-100 p-5" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05)">
+                <div class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Avg CPC</div>
+                <div class="text-2xl font-bold" style="color: var(--bbg-orange)">{data.currency} {fmtCost(tf.totals.avg_cpc)}</div>
+              </div>
+            </div>
 
-          <!-- Overview cards -->
-          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-            <div class="rounded-2xl border border-gray-100 p-5" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05)">
-              <div class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Clicks</div>
-              <div class="text-2xl font-bold" style="color: var(--bbg-blue)">{fmt(tf.totals.clicks)}</div>
-            </div>
-            <div class="rounded-2xl border border-gray-100 p-5" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05)">
-              <div class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Impressions</div>
-              <div class="text-2xl font-bold" style="color: var(--bbg-purple)">{fmt(tf.totals.impressions)}</div>
-            </div>
-            <div class="rounded-2xl border border-gray-100 p-5" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05)">
-              <div class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Spend</div>
-              <div class="text-2xl font-bold" style="color: var(--bbg-red)">{data.currency} {fmtCost(tf.totals.cost)}</div>
-            </div>
-            <div class="rounded-2xl border border-gray-100 p-5" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05)">
-              <div class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Avg CPC</div>
-              <div class="text-2xl font-bold" style="color: var(--bbg-orange)">{data.currency} {fmtCost(tf.totals.avg_cpc)}</div>
-            </div>
-          </div>
+            {tf.campaigns.map((campaign: any, ci: number) => {
+              const color = colors[ci % colors.length];
+              return (
+                <div class="mb-10 border border-gray-200 rounded-xl overflow-hidden">
+                  <div class="px-6 py-4 flex flex-wrap items-center gap-3" style={`background: ${color}18; border-bottom: 2px solid ${color}`}>
+                    <h2 class="font-bold text-lg" style={`color: ${color}`}>{campaign.name}</h2>
+                    <span class={`text-xs px-2 py-0.5 rounded ${campaign.status === 'ENABLED' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                      {campaign.status}
+                    </span>
+                    <div class="ml-auto flex gap-4 text-sm">
+                      <span class="text-gray-500"><span class="font-bold" style={`color: ${color}`}>{fmt(campaign.totals.clicks)}</span> clicks</span>
+                      <span class="text-gray-500"><span class="font-bold">{fmt(campaign.totals.impressions)}</span> impr</span>
+                      <span class="text-gray-500">Spend <span class="font-bold">{data.currency} {fmtCost(campaign.totals.cost)}</span></span>
+                      <span class="text-gray-500">CPC <span class="font-bold">{data.currency} {fmtCost(campaign.totals.avg_cpc)}</span></span>
+                    </div>
+                  </div>
 
-          <!-- Campaign breakdown -->
-          {tf.campaigns.map((campaign: any, ci: number) => {
-            const color = colors[ci % colors.length];
-            return (
-              <div class="mb-10 border border-gray-200 rounded-xl overflow-hidden">
-                <div class="px-6 py-4 flex flex-wrap items-center gap-3" style={`background: ${color}18; border-bottom: 2px solid ${color}`}>
-                  <h2 class="font-bold text-lg" style={`color: ${color}`}>{campaign.name}</h2>
-                  <span class={`text-xs px-2 py-0.5 rounded ${campaign.status === 'ENABLED' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                    {campaign.status}
-                  </span>
-                  <div class="ml-auto flex gap-4 text-sm">
-                    <span class="text-gray-500"><span class="font-bold" style={`color: ${color}`}>{fmt(campaign.totals.clicks)}</span> clicks</span>
-                    <span class="text-gray-500"><span class="font-bold">{fmt(campaign.totals.impressions)}</span> impr</span>
-                    <span class="text-gray-500">Spend <span class="font-bold">{data.currency} {fmtCost(campaign.totals.cost)}</span></span>
-                    <span class="text-gray-500">CPC <span class="font-bold">{data.currency} {fmtCost(campaign.totals.avg_cpc)}</span></span>
+                  <div class="divide-y divide-gray-100">
+                    {campaign.ad_groups.map((ag: any) => (
+                      <details class="group" open={ag.totals.clicks > 0}>
+                        <summary class="flex flex-wrap items-center gap-3 px-6 py-3 cursor-pointer hover:bg-gray-50 list-none">
+                          <span class="font-medium text-gray-800">{ag.name}</span>
+                          <span class={`text-xs px-1.5 py-0.5 rounded ${ag.status === 'ENABLED' ? 'bg-green-50 text-green-600' : 'bg-gray-50 text-gray-400'}`}>
+                            {ag.status}
+                          </span>
+                          <div class="ml-auto flex gap-3 text-xs text-gray-400">
+                            <span>{fmt(ag.totals.clicks)} clicks</span>
+                            <span>{fmt(ag.totals.impressions)} impr</span>
+                            <span>{data.currency} {fmtCost(ag.totals.cost)}</span>
+                            <span>CPC {data.currency} {fmtCost(ag.totals.avg_cpc)}</span>
+                          </div>
+                          <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </summary>
+
+                        <div class="px-6 pb-4 pt-1 overflow-x-auto">
+                          <table class="w-full text-sm">
+                            <thead>
+                              <tr class="text-left text-xs uppercase tracking-wide text-gray-400 border-b border-gray-100">
+                                <th class="py-2 pr-4">Keyword</th>
+                                <th class="py-2 pr-4 text-right">Clicks</th>
+                                <th class="py-2 pr-4 text-right">Impressions</th>
+                                <th class="py-2 pr-4 text-right">Cost ({data.currency})</th>
+                                <th class="py-2 pr-4 text-right">Avg CPC ({data.currency})</th>
+                                <th class="py-2 pr-4 text-right">Max CPC ({data.currency})</th>
+                                <th class="py-2 text-center">CTR</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {ag.keywords.map((kw: any) => {
+                                const ctr = kw.impressions > 0 ? ((kw.clicks / kw.impressions) * 100).toFixed(1) : '—';
+                                return (
+                                  <tr class={`border-b border-gray-50 ${kw.clicks > 0 ? '' : 'text-gray-400'}`}>
+                                    <td class="py-1.5 pr-4 font-mono text-sm">{kw.text}</td>
+                                    <td class="py-1.5 pr-4 text-right font-bold">{fmt(kw.clicks)}</td>
+                                    <td class="py-1.5 pr-4 text-right">{fmt(kw.impressions)}</td>
+                                    <td class="py-1.5 pr-4 text-right">{fmtCost(kw.cost)}</td>
+                                    <td class="py-1.5 pr-4 text-right">{kw.clicks > 0 ? fmtCost(kw.avg_cpc) : '—'}</td>
+                                    <td class="py-1.5 pr-4 text-right text-gray-400">{fmtCost(kw.max_cpc)}</td>
+                                    <td class="py-1.5 text-center">{ctr}{ctr !== '—' ? '%' : ''}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </details>
+                    ))}
                   </div>
                 </div>
-
-                <div class="divide-y divide-gray-100">
-                  {campaign.ad_groups.map((ag: any) => (
-                    <details class="group" open={ag.totals.clicks > 0}>
-                      <summary class="flex flex-wrap items-center gap-3 px-6 py-3 cursor-pointer hover:bg-gray-50 list-none">
-                        <span class="font-medium text-gray-800">{ag.name}</span>
-                        <span class={`text-xs px-1.5 py-0.5 rounded ${ag.status === 'ENABLED' ? 'bg-green-50 text-green-600' : 'bg-gray-50 text-gray-400'}`}>
-                          {ag.status}
-                        </span>
-                        <div class="ml-auto flex gap-3 text-xs text-gray-400">
-                          <span>{fmt(ag.totals.clicks)} clicks</span>
-                          <span>{fmt(ag.totals.impressions)} impr</span>
-                          <span>{data.currency} {fmtCost(ag.totals.cost)}</span>
-                          <span>CPC {data.currency} {fmtCost(ag.totals.avg_cpc)}</span>
-                        </div>
-                        <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                      </summary>
-
-                      <div class="px-6 pb-4 pt-1 overflow-x-auto">
-                        <table class="w-full text-sm">
-                          <thead>
-                            <tr class="text-left text-xs uppercase tracking-wide text-gray-400 border-b border-gray-100">
-                              <th class="py-2 pr-4">Keyword</th>
-                              <th class="py-2 pr-4 text-right">Clicks</th>
-                              <th class="py-2 pr-4 text-right">Impressions</th>
-                              <th class="py-2 pr-4 text-right">Cost ({data.currency})</th>
-                              <th class="py-2 pr-4 text-right">Avg CPC ({data.currency})</th>
-                              <th class="py-2 pr-4 text-right">Max CPC ({data.currency})</th>
-                              <th class="py-2 text-center">CTR</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {ag.keywords.map((kw: any) => {
-                              const ctr = kw.impressions > 0 ? ((kw.clicks / kw.impressions) * 100).toFixed(1) : '—';
-                              return (
-                                <tr class={`border-b border-gray-50 ${kw.clicks > 0 ? '' : 'text-gray-400'}`}>
-                                  <td class="py-1.5 pr-4 font-mono text-sm">{kw.text}</td>
-                                  <td class="py-1.5 pr-4 text-right font-bold">{fmt(kw.clicks)}</td>
-                                  <td class="py-1.5 pr-4 text-right">{fmt(kw.impressions)}</td>
-                                  <td class="py-1.5 pr-4 text-right">{fmtCost(kw.cost)}</td>
-                                  <td class="py-1.5 pr-4 text-right">{kw.clicks > 0 ? fmtCost(kw.avg_cpc) : '—'}</td>
-                                  <td class="py-1.5 pr-4 text-right text-gray-400">{fmtCost(kw.max_cpc)}</td>
-                                  <td class="py-1.5 text-center">{ctr}{ctr !== '—' ? '%' : ''}</td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </details>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      );
-    })}
-  )}
+              );
+            })}
+          </div>
+        );
+      })}
+      </>
+      )}
+    </div>
+    );
+  })}
 </Layout>
 
 <script>
-  const tabs = document.querySelectorAll<HTMLButtonElement>('#tf-tabs button');
-  const panels = document.querySelectorAll<HTMLElement>('[data-tf-panel]');
-
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      const key = tab.dataset.tf;
-      tabs.forEach(t => {
-        t.classList.remove('bg-gray-900', 'text-white', 'border-gray-900');
-        t.classList.add('bg-white', 'text-gray-600', 'border-gray-200');
-      });
-      tab.classList.remove('bg-white', 'text-gray-600', 'border-gray-200');
-      tab.classList.add('bg-gray-900', 'text-white', 'border-gray-900');
-      panels.forEach(p => {
-        p.classList.toggle('hidden', p.dataset.tfPanel !== key);
+  // Timeframe tabs are scoped per project via data-tf-scope / data-tf-owner.
+  document.querySelectorAll<HTMLElement>('.tf-tabs').forEach(group => {
+    const owner = group.dataset.tfScope;
+    const tabs = group.querySelectorAll<HTMLButtonElement>('button');
+    const panels = document.querySelectorAll<HTMLElement>(`[data-tf-panel][data-tf-owner="${owner}"]`);
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const key = tab.dataset.tf;
+        tabs.forEach(t => {
+          t.classList.remove('bg-gray-900', 'text-white', 'border-gray-900');
+          t.classList.add('bg-white', 'text-gray-600', 'border-gray-200');
+        });
+        tab.classList.remove('bg-white', 'text-gray-600', 'border-gray-200');
+        tab.classList.add('bg-gray-900', 'text-white', 'border-gray-900');
+        panels.forEach(pl => pl.classList.toggle('hidden', pl.dataset.tfPanel !== key));
       });
     });
   });

@@ -1,40 +1,50 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { marked } from 'marked';
-import { readFileSync, readdirSync, existsSync } from 'fs';
 import { join } from 'path';
+import { projects, projectDir, readMdFiles, ROOT } from '../../lib/projects';
 
-const reportsDir = join(process.cwd(), '..', 'data', 'raw');
-const files = existsSync(reportsDir)
-  ? readdirSync(reportsDir).filter(f => f.startsWith('keywords') && f.endsWith('.md'))
-  : [];
+// Per project: data/projects/<id>/keywords_*.md
+// Beyond Border Group also falls back to the original data/raw/keywords_*.md.
+function loadKeywords(id: string) {
+  let files = readMdFiles(projectDir(id), 'keywords');
+  if (files.length === 0 && id === 'beyondbordergroup') {
+    files = readMdFiles(join(ROOT, 'data', 'raw'), 'keywords');
+  }
+  return files.map(({ file, raw }) => ({
+    name: file.replace('.md', '').replace(/keywords_?/, '').replace(/_/g, ' ').trim() || 'Master list',
+    file,
+    html: marked(raw),
+  }));
+}
 
-const reports = files.map(f => ({
-  name: f.replace('.md', '').replace(/keywords_/,'').replace(/_/g, ' '),
-  file: f,
-  html: marked(readFileSync(join(reportsDir, f), 'utf8')),
-}));
+const byProject = projects.map(p => ({ ...p, reports: loadKeywords(p.id) }));
 ---
-<Layout title="Keywords">
+<Layout title="Keywords" scoped>
   <div class="mb-8">
     <a href="/" class="text-sm text-gray-400 hover:text-gray-600 mb-4 inline-block">&larr; Dashboard</a>
     <h1 class="text-3xl font-bold mb-2" style="color: var(--bbg-blue)">🔍 Keywords</h1>
-    <p class="text-gray-500">Master keyword list and opportunity mapping.</p>
+    <p class="text-gray-500">Master keyword list and opportunity mapping · <span data-active-project-name>this project</span></p>
   </div>
 
-  {reports.length === 0 ? (
-    <div class="rounded-3xl border border-dashed border-gray-200 p-12 text-center text-gray-400">
-      No keyword reports yet. Save results to <code>data/raw/keywords_*.md</code>
-    </div>
-  ) : (
-    reports.map(r => (
-      <div class="mb-8 rounded-3xl border border-gray-100 overflow-hidden" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05)">
-        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between" style="background: var(--bbg-gray-light)">
-          <h2 class="font-semibold capitalize">{r.name}</h2>
-          <span class="text-xs text-gray-400">{r.file}</span>
+  {byProject.map(p => (
+    <div data-project-panel={p.id} class="hidden">
+      {p.reports.length === 0 ? (
+        <div class="rounded-3xl border border-dashed border-gray-200 p-12 text-center">
+          <div class="text-gray-400 mb-1">No keyword reports for <span class="font-semibold" style={`color: ${p.color}`}>{p.name}</span> yet.</div>
+          <div class="text-xs text-gray-400">Add <code>data/projects/{p.id}/keywords_*.md</code></div>
         </div>
-        <div class="p-6 prose max-w-none overflow-x-auto" set:html={r.html} />
-      </div>
-    ))
-  )}
+      ) : (
+        p.reports.map(r => (
+          <div class="mb-8 rounded-3xl border border-gray-100 overflow-hidden" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05)">
+            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between" style="background: var(--bbg-gray-light)">
+              <h2 class="font-semibold capitalize">{r.name}</h2>
+              <span class="text-xs text-gray-400">{r.file}</span>
+            </div>
+            <div class="p-6 prose max-w-none overflow-x-auto" set:html={r.html} />
+          </div>
+        ))
+      )}
+    </div>
+  ))}
 </Layout>

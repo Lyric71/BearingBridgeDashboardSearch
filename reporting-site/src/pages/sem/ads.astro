@@ -1,7 +1,8 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import { projects } from '../../lib/projects';
 
-const campaigns = [
+const bbgCampaigns = [
   {
     id: 'C1',
     name: 'Ecommerce Consulting',
@@ -300,7 +301,7 @@ const campaigns = [
   },
 ];
 
-const negativeKeywords = [
+const bbgNegativeKeywords = [
   'jobs','salary','career','internship','intern','course','training','free','PDF','download',
   'template','wikipedia','what is','definition','meaning','tutorial','example','sample',
   'case study','book','certification','degree','masters','MBA','reddit','quora','blog',
@@ -308,19 +309,36 @@ const negativeKeywords = [
   'tips','checklist',
 ];
 
-const totalAdGroups = campaigns.reduce((sum, c) => sum + c.adGroups.length, 0);
-const totalKeywords = campaigns.reduce((sum, c) => sum + c.adGroups.reduce((s, ag) => s + ag.keywords.length, 0), 0);
+// Per-project ad campaigns. Only Beyond Border Group is built out today.
+const adsByProject: Record<string, { campaigns: typeof bbgCampaigns; negativeKeywords: string[] }> = {
+  beyondbordergroup: { campaigns: bbgCampaigns, negativeKeywords: bbgNegativeKeywords },
+};
+
+const byProject = projects.map(p => {
+  const ads = adsByProject[p.id] ?? { campaigns: [], negativeKeywords: [] };
+  const totalAdGroups = ads.campaigns.reduce((sum, c) => sum + c.adGroups.length, 0);
+  const totalKeywords = ads.campaigns.reduce((sum, c) => sum + c.adGroups.reduce((s, ag) => s + ag.keywords.length, 0), 0);
+  return { ...p, ...ads, totalAdGroups, totalKeywords };
+});
 ---
-<Layout title="Google Ads">
+<Layout title="Google Ads" scoped>
   <div class="mb-8">
     <a href="/" class="text-sm text-gray-400 hover:text-gray-600 mb-4 inline-block">&larr; Dashboard</a>
     <h1 class="text-3xl font-bold mb-2" style="color: var(--bbg-orange)">Google Ads Campaigns</h1>
-    <p class="text-gray-500 mb-1">{campaigns.length} campaigns · {totalAdGroups} ad groups · {totalKeywords} keywords · All PAUSED</p>
-    <p class="text-gray-400 text-sm">Service-intent keywords only · PHRASE match · HKD 10 CPC · Final URL: beyondbordergroup.com</p>
+    <p class="text-gray-500 mb-1">Campaign structure, ad groups, RSA copy &amp; negatives · <span data-active-project-name>this project</span></p>
   </div>
 
-  <!-- Campaign cards -->
-  {campaigns.map(campaign => (
+  {byProject.map(p => (
+    <div data-project-panel={p.id} class="hidden">
+      {p.campaigns.length === 0 ? (
+        <div class="rounded-3xl border border-dashed border-gray-200 p-12 text-center">
+          <div class="text-gray-400 mb-1">No Google Ads campaigns for <span class="font-semibold" style={`color: ${p.color}`}>{p.name}</span> yet.</div>
+          <div class="text-xs text-gray-400">Build out the campaign plan for this project to populate this view.</div>
+        </div>
+      ) : (
+      <>
+      <p class="text-gray-400 text-sm mb-6">{p.campaigns.length} campaigns · {p.totalAdGroups} ad groups · {p.totalKeywords} keywords</p>
+  {p.campaigns.map(campaign => (
     <div class="mb-10 border border-gray-200 rounded-xl overflow-hidden">
       <!-- Campaign header -->
       <div class="px-6 py-4 flex items-center gap-3" style={`background: ${campaign.color}18; border-bottom: 2px solid ${campaign.color}`}>
@@ -390,12 +408,16 @@ const totalKeywords = campaigns.reduce((sum, c) => sum + c.adGroups.reduce((s, a
   <div class="border border-gray-200 rounded-xl overflow-hidden">
     <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
       <h2 class="font-bold text-gray-700">Global Negative Keywords</h2>
-      <p class="text-xs text-gray-400 mt-0.5">Shared across all campaigns · {negativeKeywords.length} terms</p>
+      <p class="text-xs text-gray-400 mt-0.5">Shared across all campaigns · {p.negativeKeywords.length} terms</p>
     </div>
     <div class="px-6 py-4 flex flex-wrap gap-2">
-      {negativeKeywords.map(kw => (
+      {p.negativeKeywords.map(kw => (
         <span class="text-xs bg-red-50 text-red-600 border border-red-100 rounded px-2 py-0.5 font-mono">{kw}</span>
       ))}
     </div>
   </div>
+      </>
+      )}
+    </div>
+  ))}
 </Layout>
