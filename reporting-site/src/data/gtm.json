@@ -1,0 +1,173 @@
+{
+  "updated": "2026-06-07",
+  "columns": [
+    { "id": "todo",  "label": "To Do" },
+    { "id": "doing", "label": "In Progress" },
+    { "id": "done",  "label": "Done" }
+  ],
+  "projects": [
+    {
+      "id": "beyondbordergroup",
+      "name": "BeyondBorderGroup",
+      "color": "var(--bbg-blue)",
+      "owner": "Cyril",
+      "targetCustomers": "Any brand or companies which would like to come to China to open a business",
+      "preciseTargeting": "Export manager / who else?",
+      "rtb": "They want to sell their product or services in China",
+      "emailTarget": "Export Manager / APAC GM / APAC Sales",
+      "channels": { "seo": "Yes", "sem": "Yes - super targeted", "email": "Yes" },
+      "tasks": [
+        { "title": "Translate the offer in ES", "status": "done" },
+        { "title": "Translate the offer in DE", "status": "done" },
+        { "title": "Technical SEO setup", "status": "done" },
+        { "title": "GSC", "status": "done" },
+        { "title": "Analytics", "status": "done" },
+        { "title": "Speed Insights", "status": "done" },
+        { "title": "Keywords Study SEO", "status": "todo" },
+        { "title": "Keywords Study SEM", "status": "todo" },
+        { "title": "SEO Competitors Study", "status": "todo" },
+        { "title": "SEO report", "status": "todo" },
+        { "title": "Google Adwords Campaigns", "status": "todo" },
+        { "title": "Email Marketing Campaign", "status": "todo" }
+      ]
+    },
+    {
+      "id": "beyondcompass",
+      "name": "BeyondCompass",
+      "color": "var(--bbg-purple)",
+      "owner": "Cyril",
+      "targetCustomers": "Any brand or companies which need a distributor or a TP in China",
+      "preciseTargeting": "??",
+      "rtb": "They are specifically looking for a distributor in China",
+      "emailTarget": "Export Manager / APAC GM / APAC Sales",
+      "channels": { "seo": "Yes", "sem": "Yes - super targeted", "email": "Yes" },
+      "tasks": [
+        { "title": "Translate the offer in ES", "status": "done" },
+        { "title": "Translate the offer in DE", "status": "done" },
+        { "title": "Technical SEO setup", "status": "done" },
+        { "title": "GSC", "status": "done" },
+        { "title": "Analytics", "status": "todo" },
+        { "title": "Speed Insights", "status": "todo" },
+        { "title": "Keywords Study SEO", "status": "todo" },
+        { "title": "Keywords Study SEM", "status": "todo" },
+        { "title": "SEO Competitors Study", "status": "todo" },
+        { "title": "SEO report", "status": "todo" },
+        { "title": "Google Adwords Campaigns", "status": "todo" },
+        { "title": "Email Marketing Campaign", "status": "todo" }
+      ]
+    },
+    {
+      "id": "theredscroll",
+      "name": "TheRedScroll",
+      "color": "var(--bbg-red)",
+      "owner": "Cyril",
+      "targetCustomers": "Any brand or companies which need social network in China",
+      "preciseTargeting": "",
+      "rtb": "They are looking for a social agency in China",
+      "emailTarget": "Social Media manager / Marketing APAC",
+      "channels": { "seo": "Yes", "sem": "Yes - super targeted", "email": "Yes" },
+      "tasks": [
+        { "title": "Translate the offer in ES", "status": "done" },
+        { "title": "Translate the offer in DE", "status": "done" },
+        { "title": "Technical SEO setup", "status": "done" },
+        { "title": "GSC", "status": "done" },
+        { "title": "Analytics", "status": "done" },
+        { "title": "Speed Insights", "status": "done" },
+        { "title": "Keywords Study SEO", "status": "todo" },
+        { "title": "Keywords Study SEM", "status": "todo" },
+        { "title": "SEO Competitors Study", "status": "todo" },
+        { "title": "SEO report", "status": "todo" },
+        { "title": "Google Adwords Campaigns", "status": "todo" }
+      ]
+    },
+    {
+      "id": "chinawebfoundry",
+      "name": "ChinaWebFoundry",
+      "color": "var(--bbg-orange)",
+      "owner": "Cyril",
+      "targetCustomers": "Business which needs a website in China and/or in Chinese",
+      "preciseTargeting": "People looking for an agency or a vendor to run the project - Buyer intent",
+      "rtb": "They are looking for a web agency in China for a China website",
+      "emailTarget": "NO for now",
+      "channels": { "seo": "Yes", "sem": "Yes - super targeted", "email": "No" },
+      "tasks": [
+        { "title": "Translate the offer in ES", "status": "done" },
+        { "title": "Translate the offer in DE", "status": "done" },
+        { "title": "Technical SEO setup", "status": "done" },
+        { "title": "GSC", "status": "done" },
+        { "title": "Analytics", "status": "done" },
+        { "title": "Speed Insights", "status": "done" },
+        { "title": "Keywords Study SEO", "status": "todo" },
+        { "title": "Keywords Study SEM", "status": "todo" },
+        { "title": "SEO Competitors Study", "status": "todo" },
+        { "title": "SEO report", "status": "todo" },
+        { "title": "Google Adwords Campaigns", "status": "todo" }
+      ]
+    },
+    {
+      "id": "nuvorastudio",
+      "name": "NuvoraStudio",
+      "color": "var(--bbg-blue)",
+      "owner": "Cyril",
+      "targetCustomers": "Any Linkedin need. All over the world.",
+      "preciseTargeting": "",
+      "rtb": "",
+      "emailTarget": "NO for now",
+      "channels": { "seo": "Yes", "sem": "No for now", "email": "No" },
+      "tasks": [
+        { "title": "Translate the offer in ES", "status": "done" },
+        { "title": "Translate the offer in DE", "status": "done" },
+        { "title": "Technical SEO setup", "status": "done" },
+        { "title": "GSC", "status": "done" },
+        { "title": "Analytics", "status": "done" },
+        { "title": "Speed Insights", "status": "done" },
+        { "title": "Keywords Study SEO", "status": "todo" },
+        { "title": "Keywords Study SEM", "status": "todo" },
+        { "title": "SEO Competitors Study", "status": "todo" },
+        { "title": "SEO report", "status": "todo" },
+        { "title": "Google Adwords Campaigns", "status": "todo" },
+        { "title": "Email Marketing Campaign", "status": "todo" }
+      ]
+    },
+    {
+      "id": "hubstudio",
+      "name": "HubStudio",
+      "color": "var(--bbg-orange)",
+      "owner": "Cyril",
+      "targetCustomers": "Production need. Any need.",
+      "preciseTargeting": "",
+      "rtb": "Cheap production / AIGC production / China production / Asia production",
+      "emailTarget": "Marketing / Agencies - Start with France",
+      "channels": { "seo": "Yes", "sem": "No", "email": "Yes" },
+      "tasks": [
+        { "title": "Rework the offer to the production house narrative", "status": "done" },
+        { "title": "Migrate the site to Astro in the new format", "status": "done" },
+        { "title": "Technical SEO setup", "status": "todo" },
+        { "title": "GSC", "status": "todo" },
+        { "title": "Analytics", "status": "todo" },
+        { "title": "Speed Insights", "status": "todo" },
+        { "title": "Keywords Study SEO", "status": "todo" },
+        { "title": "Keywords Study SEM", "status": "todo" },
+        { "title": "SEO Competitors Study", "status": "todo" },
+        { "title": "SEO report", "status": "todo" },
+        { "title": "Email Marketing Campaign", "status": "todo" }
+      ]
+    },
+    {
+      "id": "beyondbridge",
+      "name": "BeyondBridge",
+      "color": "var(--bbg-red)",
+      "owner": "Chinese Sales",
+      "targetCustomers": "Chinese B2B brands going overseas",
+      "preciseTargeting": "B2B brands going overseas",
+      "rtb": "They are a chinese B2B business and they want to find leads overseas",
+      "emailTarget": "??",
+      "channels": { "seo": "Yes", "sem": "No", "email": "??" },
+      "tasks": [
+        { "title": "Build the website - NOT STARTED YET - LONG", "status": "todo" },
+        { "title": "Hosting in China for ZH", "status": "todo" },
+        { "title": "EN on vercel", "status": "todo" }
+      ]
+    }
+  ]
+}
