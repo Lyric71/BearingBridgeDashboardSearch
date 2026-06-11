@@ -15,8 +15,8 @@ function channelToneClass(v: string): string {
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-// Panel markup mirrors the old `full` variant of KanbanBoard.astro.
-function panelHtml(p: Project): string {
+// Panel markup mirrors KanbanBoard.astro (full = rich header, compact = slim bar).
+function panelHtml(p: Project, variant: 'full' | 'compact'): string {
   const detail = (label: string, value: string) =>
     value ? `<div><span class="text-gray-400">${label}:</span> <span class="text-gray-700">${esc(value)}</span></div>` : '';
   const chip = (label: string, v: string) =>
@@ -36,8 +36,8 @@ function panelHtml(p: Project): string {
     )
     .join('');
 
-  return `
-    <div class="rounded-2xl border border-gray-100 p-6 mb-6" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05); border-left: 4px solid ${p.color}">
+  // Rich header (/gtm "full") vs. slim progress bar (dashboard "compact").
+  const fullHeader = `
       <div class="flex flex-wrap items-start justify-between gap-4 mb-4">
         <div>
           <h2 class="font-bold text-xl" style="color: ${p.color}">${esc(p.name)}</h2>
@@ -61,13 +61,31 @@ function panelHtml(p: Project): string {
         ${chip('SEO', p.channels.seo)}
         ${chip('SEM', p.channels.sem)}
         ${chip('Email', p.channels.email)}
-      </div>
+      </div>`;
+
+  const compactHeader = `
+      <div class="flex items-center gap-3 mb-4">
+        <div class="h-2 flex-1 rounded-full bg-gray-100 overflow-hidden">
+          <div class="h-full rounded-full transition-all" style="width: 0%; background: ${p.color}" data-kanban-bar="${p.id}"></div>
+        </div>
+        <span class="text-sm font-bold tabular-nums" style="color: ${p.color}" data-kanban-pct="${p.id}">0%</span>
+        <span class="text-xs text-gray-400 tabular-nums"><span data-kanban-done="${p.id}">0</span> / <span data-kanban-total="${p.id}">0</span> done</span>
+      </div>`;
+
+  if (variant === 'full') {
+    return `
+    <div class="rounded-2xl border border-gray-100 p-6 mb-6" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05); border-left: 4px solid ${p.color}">${fullHeader}
     </div>
+    <div class="grid md:grid-cols-3 gap-4">${cols}</div>`;
+  }
+  return `${compactHeader}
     <div class="grid md:grid-cols-3 gap-4">${cols}</div>`;
 }
 
-export function mountProjectBoard() {
-  const container = document.getElementById('project-board');
+// Render a Kanban board (full or compact) into a container, client-side from the
+// project store, so created projects get a board everywhere — not just /gtm.
+export function mountProjectBoard(variant: 'full' | 'compact' = 'full', containerId = 'project-board') {
+  const container = document.getElementById(containerId);
   if (!container) return;
   // Only projects with the Kanban module enabled get a board.
   const projects = listProjects().filter(p => p.modules.kanban);
@@ -77,7 +95,7 @@ export function mountProjectBoard() {
     return;
   }
   container.innerHTML = projects
-    .map(p => `<div data-project-panel="${p.id}" class="hidden">${panelHtml(p)}</div>`)
+    .map(p => `<div data-project-panel="${p.id}" class="hidden">${panelHtml(p, variant)}</div>`)
     .join('');
   mountKanban();
   // Panels now exist — let the layout reconcile the selector and reveal the

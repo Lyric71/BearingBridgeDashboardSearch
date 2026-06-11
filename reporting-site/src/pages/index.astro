@@ -1,6 +1,5 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import KanbanBoard from '../components/KanbanBoard.astro';
 import gtm from '../data/gtm.json';
 
 // Curated SEO/Ads headline metrics — only Beyond Border Group has analytics today.
@@ -52,7 +51,8 @@ const sem = [
       <h2 class="text-xs font-semibold uppercase tracking-widest" style="color: var(--bbg-gray-muted)">GTM Board · <span data-active-project-name>project</span></h2>
       <a href="/gtm" class="text-xs font-medium hover:underline" style="color: var(--bbg-blue)">Full board &rarr;</a>
     </div>
-    <KanbanBoard />
+    <!-- Compact board rendered client-side from the project store (includes created projects). -->
+    <div id="project-board-compact"></div>
   </section>
 
   <!-- SEO -->
@@ -112,3 +112,8 @@ const sem = [
     ))}
   </section>
 </Layout>
+
+<script>
+  import { mountProjectBoard } from '../scripts/projectBoard';
+  mountProjectBoard('compact', 'project-board-compact');
+</script>
