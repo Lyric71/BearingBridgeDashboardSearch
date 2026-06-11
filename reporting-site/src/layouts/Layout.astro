@@ -4,6 +4,7 @@ import { projects } from '../lib/projects';
 interface Props { title: string; scoped?: boolean; }
 const { title, scoped = false } = Astro.props;
 const nav = [
+  { label: 'Projects', href: '/projects' },
   { label: 'Dashboard', href: '/' },
   { label: 'GTM Kanban', href: '/gtm' },
   { label: 'Keywords', href: '/seo/keywords' },
@@ -64,7 +65,7 @@ const current = Astro.url.pathname;
           </select>
           <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
         </div>
-        <a href="/gtm" class="text-xs text-gray-400 hover:text-gray-600">Manage projects &rarr;</a>
+        <a href="/projects" class="text-xs text-gray-400 hover:text-gray-600">Manage projects &rarr;</a>
       </div>
     </div>
   </header>
@@ -95,6 +96,21 @@ const current = Astro.url.pathname;
     const PROJECT_KEY = 'bbg_active_project';
     const select = document.getElementById('project-select') as HTMLSelectElement | null;
     const dot = document.getElementById('project-dot');
+    const main = document.querySelector('main');
+
+    // Lazily-created "no data for this project yet" panel for scoped pages.
+    let fallbackEl: HTMLElement | null = null;
+    function fallback(): HTMLElement {
+      if (fallbackEl) return fallbackEl;
+      fallbackEl = document.createElement('div');
+      fallbackEl.className =
+        'hidden rounded-3xl border border-dashed border-gray-200 p-12 text-center';
+      fallbackEl.innerHTML =
+        '<div class="text-gray-400 mb-1">No data yet for <span class="font-semibold" data-active-project-name>this project</span>.</div>' +
+        '<div class="text-xs text-gray-400">Add content for this section, or manage projects on the <a href="/projects" class="underline">Projects</a> page.</div>';
+      main!.appendChild(fallbackEl);
+      return fallbackEl;
+    }
 
     // The project store (localStorage) is the source of truth once a browser has
     // edited the set. Rebuild the <select> options from it so created / renamed /
@@ -130,18 +146,37 @@ const current = Astro.url.pathname;
       const list = ids();
       return saved && list.includes(saved) ? saved : (list[0] || '');
     }
+    function setNames(name: string) {
+      document.querySelectorAll<HTMLElement>('[data-active-project-name]').forEach(el => { el.textContent = name; });
+    }
     function apply(id: string) {
+      let name = '';
       if (select) {
         select.value = id;
         const opt = select.options[select.selectedIndex];
         if (dot && opt) dot.style.background = opt.dataset.color || 'var(--bbg-gray-dark)';
-        const name = opt ? opt.text : '';
-        document.querySelectorAll<HTMLElement>('[data-active-project-name]').forEach(el => { el.textContent = name; });
+        name = opt ? opt.text : '';
+        setNames(name);
       }
       // Show only the active project's panels (pages that aren't scoped have none).
-      document.querySelectorAll<HTMLElement>('[data-project-panel]').forEach(p => {
-        p.classList.toggle('hidden', p.dataset.projectPanel !== id);
+      const panels = document.querySelectorAll<HTMLElement>('[data-project-panel]');
+      let matched = false;
+      panels.forEach(p => {
+        const show = p.dataset.projectPanel === id;
+        if (show) matched = true;
+        p.classList.toggle('hidden', !show);
       });
+      // Scoped page, but this project has no server-rendered panel (e.g. a
+      // project created in-browser). Show a graceful empty state instead of a
+      // blank screen — its data sections just don't exist yet.
+      if (main) {
+        if (panels.length > 0 && !matched) {
+          fallback().classList.remove('hidden');
+          setNames(name); // fill the name inside the freshly-shown fallback
+        } else if (fallbackEl) {
+          fallbackEl.classList.add('hidden');
+        }
+      }
       // Let scoped pages react (e.g. update headings/empty states if needed).
       document.dispatchEvent(new CustomEvent('projectchange', { detail: { id } }));
     }

@@ -7,16 +7,11 @@ import Layout from '../layouts/Layout.astro';
     <div class="flex flex-wrap items-end justify-between gap-3">
       <div>
         <h1 class="text-3xl font-bold mb-2" style="color: var(--bbg-gray-dark)">Go-To-Market Kanban</h1>
-        <p class="text-gray-400 text-sm"><span data-project-total>0</span> projects · add, edit &amp; delete projects · add, edit, delete &amp; drag tasks · right-click a task for move &amp; duplicate — changes save in this browser</p>
+        <p class="text-gray-400 text-sm">Add, edit, delete &amp; drag tasks · right-click a task for move &amp; duplicate — changes save in this browser · manage projects on the <a href="/projects" class="underline hover:text-gray-600">Projects</a> page</p>
       </div>
-      <div class="flex items-center gap-2">
-        <button data-project-new class="text-xs px-3 py-1.5 rounded-lg text-white font-semibold transition-colors" style="background: var(--bbg-gray-dark)">
-          + New project
-        </button>
-        <button data-kanban-reset class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-colors">
-          Reset to plan
-        </button>
-      </div>
+      <button data-kanban-reset class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-colors">
+        Reset to plan
+      </button>
     </div>
   </div>
 
