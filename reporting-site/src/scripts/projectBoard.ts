@@ -69,14 +69,18 @@ function panelHtml(p: Project): string {
 export function mountProjectBoard() {
   const container = document.getElementById('project-board');
   if (!container) return;
-  const projects = listProjects();
+  // Only projects with the Kanban module enabled get a board.
+  const projects = listProjects().filter(p => p.modules.kanban);
   if (projects.length === 0) {
     container.innerHTML =
-      '<div class="rounded-3xl border border-dashed border-gray-200 p-12 text-center text-gray-400">No projects yet. Create one on the <a href="/projects" class="underline">Projects</a> page.</div>';
+      '<div class="rounded-3xl border border-dashed border-gray-200 p-12 text-center text-gray-400">No projects have the Kanban module enabled. Enable it on the <a href="/projects" class="underline">Projects</a> page.</div>';
     return;
   }
   container.innerHTML = projects
     .map(p => `<div data-project-panel="${p.id}" class="hidden">${panelHtml(p)}</div>`)
     .join('');
   mountKanban();
+  // Panels now exist — let the layout reconcile the selector and reveal the
+  // active project's panel (order-independent of the layout's own init).
+  document.dispatchEvent(new CustomEvent('projectsupdated'));
 }

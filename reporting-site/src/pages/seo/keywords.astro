@@ -20,7 +20,7 @@ function loadKeywords(id: string) {
 
 const byProject = projects.map(p => ({ ...p, reports: loadKeywords(p.id) }));
 ---
-<Layout title="Keywords" scoped>
+<Layout title="Keywords" scoped module="seo">
   <div class="mb-8">
     <a href="/" class="text-sm text-gray-400 hover:text-gray-600 mb-4 inline-block">&larr; Dashboard</a>
     <h1 class="text-3xl font-bold mb-2" style="color: var(--bbg-blue)">🔍 Keywords</h1>

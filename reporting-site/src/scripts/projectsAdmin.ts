@@ -9,8 +9,10 @@ import {
   deleteProject,
   resetProjects,
   PALETTE,
+  MODULES,
   type Project,
   type ProjectInput,
+  type Modules,
 } from './projects';
 import { allTasks, purgeProject } from './kanban';
 
@@ -19,19 +21,14 @@ const ACTIVE_KEY = 'bbg_active_project';
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-function channelToneClass(v: string): string {
-  if (/^yes/i.test(v)) return 'bg-green-50 text-green-700';
-  if (/^no/i.test(v)) return 'bg-gray-100 text-gray-400';
-  return 'bg-amber-50 text-amber-700';
-}
-
-// Sections that belong to a project — clicking sets it active and drills in.
-const SECTIONS: { label: string; href: string }[] = [
-  { label: 'GTM', href: '/gtm' },
-  { label: 'Keywords', href: '/seo/keywords' },
-  { label: 'Competitors', href: '/seo/competitors' },
-  { label: 'Google Ads', href: '/sem/ads' },
-  { label: 'Click Report', href: '/sem/report' },
+// Sections that belong to a project — each maps to a module, so a section only
+// appears when its module is enabled. Clicking sets the project active + drills in.
+const SECTIONS: { label: string; href: string; module: keyof Modules }[] = [
+  { label: 'GTM', href: '/gtm', module: 'kanban' },
+  { label: 'Keywords', href: '/seo/keywords', module: 'seo' },
+  { label: 'Competitors', href: '/seo/competitors', module: 'seo' },
+  { label: 'Google Ads', href: '/sem/ads', module: 'googleAds' },
+  { label: 'Click Report', href: '/sem/report', module: 'googleAds' },
 ];
 
 function cardHtml(p: Project): string {
@@ -39,12 +36,21 @@ function cardHtml(p: Project): string {
   const done = tasks.filter(t => t.status === 'done').length;
   const total = tasks.length;
   const pct = total ? Math.round((done / total) * 100) : 0;
-  const chip = (label: string, v: string) =>
-    `<span class="text-xs px-2 py-0.5 rounded ${channelToneClass(v)}">${label} · ${esc(v || '—')}</span>`;
-  const sections = SECTIONS.map(
-    s =>
-      `<a href="${s.href}" data-project-open="${p.id}" class="text-xs px-2 py-1 rounded-lg border border-gray-200 text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-colors">${s.label}</a>`,
-  ).join('');
+  // Module badges: which modules this project has enabled.
+  const moduleBadges = MODULES.map(m => {
+    const on = p.modules[m.key];
+    return `<span class="text-xs px-2 py-0.5 rounded ${on ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-400 line-through'}">${m.label}</span>`;
+  }).join('');
+  // Drill-in links only for enabled modules.
+  const enabledSections = SECTIONS.filter(s => p.modules[s.module]);
+  const sections = enabledSections.length
+    ? enabledSections
+        .map(
+          s =>
+            `<a href="${s.href}" data-project-open="${p.id}" class="text-xs px-2 py-1 rounded-lg border border-gray-200 text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-colors">${s.label}</a>`,
+        )
+        .join('')
+    : '<span class="text-xs text-gray-300">No modules enabled</span>';
 
   return `
     <div class="rounded-3xl border border-gray-100 p-6 flex flex-col" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05); border-left: 4px solid ${p.color}">
@@ -66,19 +72,22 @@ function cardHtml(p: Project): string {
 
       <p class="text-sm text-gray-600 mb-3 line-clamp-2">${esc(p.targetCustomers || 'No description yet.')}</p>
 
-      <div class="flex flex-wrap gap-2 mb-4">
-        ${chip('SEO', p.channels.seo)}
-        ${chip('SEM', p.channels.sem)}
-        ${chip('Email', p.channels.email)}
+      <div class="mb-4">
+        <div class="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1.5">Modules</div>
+        <div class="flex flex-wrap gap-2">${moduleBadges}</div>
       </div>
 
       <div class="mt-auto">
-        <div class="flex items-center gap-2 mb-3">
-          <div class="h-1.5 flex-1 rounded-full bg-gray-100 overflow-hidden">
-            <div class="h-full rounded-full" style="width: ${pct}%; background: ${p.color}"></div>
-          </div>
-          <span class="text-xs text-gray-400 tabular-nums">${done}/${total} GTM</span>
-        </div>
+        ${
+          p.modules.kanban
+            ? `<div class="flex items-center gap-2 mb-3">
+                 <div class="h-1.5 flex-1 rounded-full bg-gray-100 overflow-hidden">
+                   <div class="h-full rounded-full" style="width: ${pct}%; background: ${p.color}"></div>
+                 </div>
+                 <span class="text-xs text-gray-400 tabular-nums">${done}/${total} GTM</span>
+               </div>`
+            : ''
+        }
         <div class="flex flex-wrap gap-1.5">${sections}</div>
       </div>
     </div>`;
@@ -112,6 +121,19 @@ function openEditor(existing: Project | null, onDone: (savedId?: string) => void
       <h2 class="text-lg font-bold mb-4">${p ? 'Edit project' : 'New project'}</h2>
       <form id="project-form" class="space-y-3">
         ${field('Name', 'name', p?.name ?? '', 'Project name')}
+        <div>
+          <span class="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">Modules</span>
+          <div class="flex flex-wrap gap-2">
+            ${MODULES.map(m => {
+              const on = p ? p.modules[m.key] : true; // new projects: all on by default
+              return `<label class="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 text-sm cursor-pointer hover:border-gray-400 has-[:checked]:border-gray-900 has-[:checked]:bg-gray-50 transition-colors">
+                <input type="checkbox" name="module-${m.key}" ${on ? 'checked' : ''} class="accent-gray-900" />
+                ${m.label}
+              </label>`;
+            }).join('')}
+          </div>
+          <p class="text-xs text-gray-400 mt-1">Unchecked modules won't appear for this project.</p>
+        </div>
         <div>
           <span class="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">Color</span>
           <div class="flex flex-wrap gap-2" data-color-picker>
@@ -184,6 +206,11 @@ function openEditor(existing: Project | null, onDone: (savedId?: string) => void
         seo: String(fd.get('seo') ?? '').trim(),
         sem: String(fd.get('sem') ?? '').trim(),
         email: String(fd.get('email') ?? '').trim(),
+      },
+      modules: {
+        kanban: fd.get('module-kanban') === 'on',
+        seo: fd.get('module-seo') === 'on',
+        googleAds: fd.get('module-googleAds') === 'on',
       },
     };
     let savedId: string;

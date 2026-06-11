@@ -13,6 +13,21 @@ export interface Channels {
   email: string;
 }
 
+// Modules a project can opt into. A module that's off simply doesn't appear for
+// that project (nav entry, drill-in link and page are all hidden/gated).
+export interface Modules {
+  kanban: boolean;
+  seo: boolean;
+  googleAds: boolean;
+}
+
+// UI metadata: order + labels for the module pickers.
+export const MODULES: { key: keyof Modules; label: string }[] = [
+  { key: 'kanban', label: 'Kanban' },
+  { key: 'seo', label: 'SEO' },
+  { key: 'googleAds', label: 'Google Ads' },
+];
+
 export interface Project {
   id: string;
   name: string;
@@ -23,6 +38,15 @@ export interface Project {
   rtb: string;
   emailTarget: string;
   channels: Channels;
+  modules: Modules;
+}
+
+function ensureModules(m?: Partial<Modules>): Modules {
+  return {
+    kanban: m?.kanban ?? true,
+    seo: m?.seo ?? true,
+    googleAds: m?.googleAds ?? true,
+  };
 }
 
 const KEY = 'bbg_gtm_projects_v1';
@@ -41,21 +65,31 @@ function clone<T>(v: T): T {
 }
 
 function seed(): Project[] {
-  return gtm.projects.map(p => ({
-    id: p.id,
-    name: p.name,
-    color: p.color,
-    owner: p.owner ?? '',
-    targetCustomers: p.targetCustomers ?? '',
-    preciseTargeting: p.preciseTargeting ?? '',
-    rtb: p.rtb ?? '',
-    emailTarget: p.emailTarget ?? '',
-    channels: {
+  return gtm.projects.map(p => {
+    const channels = {
       seo: p.channels?.seo ?? '',
       sem: p.channels?.sem ?? '',
       email: p.channels?.email ?? '',
-    },
-  }));
+    };
+    return {
+      id: p.id,
+      name: p.name,
+      color: p.color,
+      owner: p.owner ?? '',
+      targetCustomers: p.targetCustomers ?? '',
+      preciseTargeting: p.preciseTargeting ?? '',
+      rtb: p.rtb ?? '',
+      emailTarget: p.emailTarget ?? '',
+      channels,
+      // Seed modules from the existing plan: every seeded project has a GTM
+      // board; SEO / Google Ads follow the project's declared channels.
+      modules: {
+        kanban: true,
+        seo: /^yes/i.test(channels.seo),
+        googleAds: /^yes/i.test(channels.sem),
+      },
+    };
+  });
 }
 
 let state: Project[] | null = null;
@@ -64,7 +98,8 @@ function db(): Project[] {
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) {
-      state = JSON.parse(raw) as Project[];
+      // Normalize older stored projects that predate the modules field.
+      state = (JSON.parse(raw) as Project[]).map(p => ({ ...p, modules: ensureModules(p.modules) }));
       return state!;
     }
   } catch {
@@ -104,7 +139,7 @@ export type ProjectInput = Omit<Project, 'id'>;
 
 export function createProject(input: ProjectInput): Project {
   const s = db();
-  const project: Project = { ...clone(input), id: makeId(input.name) };
+  const project: Project = { ...clone(input), modules: ensureModules(input.modules), id: makeId(input.name) };
   s.push(project);
   persist();
   return clone(project);

@@ -54,7 +54,7 @@ function loadReports(id: string) {
 
 const byProject = projects.map(p => ({ ...p, groups: loadReports(p.id) }));
 ---
-<Layout title="Competitors" scoped>
+<Layout title="Competitors" scoped module="seo">
   <div class="mb-8">
     <a href="/" class="text-sm text-gray-400 hover:text-gray-600 mb-4 inline-block">&larr; Dashboard</a>
     <h1 class="text-3xl font-bold mb-2" style="color: var(--bbg-red)">⚔️ Competitor Rankings</h1>

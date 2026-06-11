@@ -1,16 +1,18 @@
 ---
 import '../styles/global.css';
 import { projects } from '../lib/projects';
-interface Props { title: string; scoped?: boolean; }
-const { title, scoped = false } = Astro.props;
+interface Props { title: string; scoped?: boolean; module?: string; }
+const { title, scoped = false, module } = Astro.props;
+// Each nav item may belong to a module; it's hidden when the active project
+// has that module turned off. Items with no module are always shown.
 const nav = [
   { label: 'Projects', href: '/projects' },
   { label: 'Dashboard', href: '/' },
-  { label: 'GTM Kanban', href: '/gtm' },
-  { label: 'Keywords', href: '/seo/keywords' },
-  { label: 'Competitors', href: '/seo/competitors' },
-  { label: 'Google Ads', href: '/sem/ads' },
-  { label: 'Click Report', href: '/sem/report' },
+  { label: 'GTM Kanban', href: '/gtm', module: 'kanban' },
+  { label: 'Keywords', href: '/seo/keywords', module: 'seo' },
+  { label: 'Competitors', href: '/seo/competitors', module: 'seo' },
+  { label: 'Google Ads', href: '/sem/ads', module: 'googleAds' },
+  { label: 'Click Report', href: '/sem/report', module: 'googleAds' },
 ];
 const current = Astro.url.pathname;
 ---
@@ -36,6 +38,7 @@ const current = Astro.url.pathname;
         {nav.map(item => (
           <a
             href={item.href}
+            data-nav-module={item.module}
             class={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
               current === item.href
                 ? 'text-white'
@@ -71,7 +74,7 @@ const current = Astro.url.pathname;
   </header>
 
   <!-- Page -->
-  <main class="flex-1 max-w-7xl mx-auto w-full px-6 py-10">
+  <main class="flex-1 max-w-7xl mx-auto w-full px-6 py-10" data-page-module={module}>
     <slot />
   </main>
 
@@ -91,26 +94,32 @@ const current = Astro.url.pathname;
 
   <!-- Global project context: drives every [data-project-panel] on the page -->
   <script>
-    import { listProjects } from '../scripts/projects';
+    import { listProjects, MODULES } from '../scripts/projects';
 
     const PROJECT_KEY = 'bbg_active_project';
     const select = document.getElementById('project-select') as HTMLSelectElement | null;
     const dot = document.getElementById('project-dot');
     const main = document.querySelector('main');
 
-    // Lazily-created "no data for this project yet" panel for scoped pages.
-    let fallbackEl: HTMLElement | null = null;
-    function fallback(): HTMLElement {
-      if (fallbackEl) return fallbackEl;
-      fallbackEl = document.createElement('div');
-      fallbackEl.className =
-        'hidden rounded-3xl border border-dashed border-gray-200 p-12 text-center';
-      fallbackEl.innerHTML =
-        '<div class="text-gray-400 mb-1">No data yet for <span class="font-semibold" data-active-project-name>this project</span>.</div>' +
-        '<div class="text-xs text-gray-400">Add content for this section, or manage projects on the <a href="/projects" class="underline">Projects</a> page.</div>';
-      main!.appendChild(fallbackEl);
-      return fallbackEl;
+    const moduleLabel = (key: string) =>
+      MODULES.find(m => m.key === key)?.label ?? key;
+    function modulesOf(id: string): Record<string, boolean> | null {
+      const p = listProjects().find(x => x.id === id);
+      return p ? (p.modules as unknown as Record<string, boolean>) : null;
     }
+
+    // Lazily-created notice panel for scoped pages (empty data / disabled module).
+    let fallbackEl: HTMLElement | null = null;
+    function showFallback(html: string) {
+      if (!main) return;
+      if (!fallbackEl) {
+        fallbackEl = document.createElement('div');
+        main.appendChild(fallbackEl);
+      }
+      fallbackEl.className = 'rounded-3xl border border-dashed border-gray-200 p-12 text-center';
+      fallbackEl.innerHTML = html;
+    }
+    function hideFallback() { fallbackEl?.classList.add('hidden'); }
 
     // The project store (localStorage) is the source of truth once a browser has
     // edited the set. Rebuild the <select> options from it so created / renamed /
@@ -158,23 +167,40 @@ const current = Astro.url.pathname;
         name = opt ? opt.text : '';
         setNames(name);
       }
-      // Show only the active project's panels (pages that aren't scoped have none).
-      const panels = document.querySelectorAll<HTMLElement>('[data-project-panel]');
-      let matched = false;
-      panels.forEach(p => {
-        const show = p.dataset.projectPanel === id;
-        if (show) matched = true;
-        p.classList.toggle('hidden', !show);
+      // Hide nav entries / dashboard sections for modules this project turned off.
+      const mods = modulesOf(id);
+      document.querySelectorAll<HTMLElement>('[data-nav-module]').forEach(el => {
+        const m = el.dataset.navModule!;
+        el.classList.toggle('hidden', !!mods && !mods[m]);
       });
-      // Scoped page, but this project has no server-rendered panel (e.g. a
-      // project created in-browser). Show a graceful empty state instead of a
-      // blank screen — its data sections just don't exist yet.
-      if (main) {
-        if (panels.length > 0 && !matched) {
-          fallback().classList.remove('hidden');
-          setNames(name); // fill the name inside the freshly-shown fallback
-        } else if (fallbackEl) {
-          fallbackEl.classList.add('hidden');
+
+      const panels = document.querySelectorAll<HTMLElement>('[data-project-panel]');
+      const pageModule = main?.dataset.pageModule || '';
+
+      if (pageModule && mods && !mods[pageModule]) {
+        // The page's module is disabled for this project — gate the whole page.
+        panels.forEach(p => p.classList.add('hidden'));
+        showFallback(
+          `<div class="text-gray-400 mb-1">The <span class="font-semibold">${moduleLabel(pageModule)}</span> module isn't enabled for <span class="font-semibold">${name || 'this project'}</span>.</div>` +
+          '<div class="text-xs text-gray-400">Enable it on the <a href="/projects" class="underline">Projects</a> page.</div>',
+        );
+      } else {
+        // Show only the active project's panels (pages that aren't scoped have none).
+        let matched = false;
+        panels.forEach(p => {
+          const show = p.dataset.projectPanel === id;
+          if (show) matched = true;
+          p.classList.toggle('hidden', !show);
+        });
+        // Scoped page, but this project has no server-rendered panel (e.g. a
+        // project created in-browser). Show a graceful empty state.
+        if (main && panels.length > 0 && !matched) {
+          showFallback(
+            `<div class="text-gray-400 mb-1">No data yet for <span class="font-semibold">${name || 'this project'}</span>.</div>` +
+            '<div class="text-xs text-gray-400">Add content for this section, or manage projects on the <a href="/projects" class="underline">Projects</a> page.</div>',
+          );
+        } else {
+          hideFallback();
         }
       }
       // Let scoped pages react (e.g. update headings/empty states if needed).
