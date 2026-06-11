@@ -14,7 +14,8 @@ import {
   type Task,
 } from './kanban';
 
-const colorOf: Record<string, string> = Object.fromEntries(projects.map(p => [p.id, p.color]));
+const colorOf = (pid: string): string =>
+  projects().find(p => p.id === pid)?.color || '#999';
 
 function iconButton(symbol: string, label: string): HTMLButtonElement {
   const b = document.createElement('button');
@@ -58,7 +59,7 @@ function cardEl(pid: string, task: Task): HTMLElement {
     'kanban-card group/card relative bg-white rounded-xl border border-gray-100 pl-3 pr-12 py-2.5 text-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow';
   card.draggable = true;
   card.dataset.kanbanCard = task.id;
-  card.style.borderLeft = `3px solid ${colorOf[pid] || '#999'}`;
+  card.style.borderLeft = `3px solid ${colorOf(pid)}`;
 
   const title = document.createElement('span');
   title.className = 'kanban-title block break-words';
@@ -112,6 +113,8 @@ function render() {
 
 function wireAdd() {
   document.querySelectorAll<HTMLElement>('[data-kanban-add]').forEach(btn => {
+    if (btn.dataset.wired) return; // idempotent: panels can be rebuilt
+    btn.dataset.wired = '1';
     btn.addEventListener('click', () => {
       const [pid, col] = btn.dataset.kanbanAdd!.split(':');
       const zone = document.querySelector<HTMLElement>(`[data-kanban-zone="${pid}:${col}"]`);
@@ -139,8 +142,9 @@ function wireAdd() {
   });
 }
 
+// Document-level drag handlers — bound once (cards are delegated by closest()).
 let dragged: HTMLElement | null = null;
-function wireDrag() {
+function wireDragGlobal() {
   document.addEventListener('dragstart', e => {
     const card = (e.target as HTMLElement).closest<HTMLElement>('.kanban-card');
     if (!card) return;
@@ -152,7 +156,12 @@ function wireDrag() {
     dragged = null;
     document.querySelectorAll('[data-kanban-zone]').forEach(z => z.classList.remove('ring-2', 'ring-gray-300'));
   });
+}
+// Per-zone drop targets — re-run after panels are rebuilt (idempotent).
+function wireZones() {
   document.querySelectorAll<HTMLElement>('[data-kanban-zone]').forEach(zone => {
+    if (zone.dataset.wired) return;
+    zone.dataset.wired = '1';
     zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('ring-2', 'ring-gray-300'); });
     zone.addEventListener('dragleave', () => zone.classList.remove('ring-2', 'ring-gray-300'));
     zone.addEventListener('drop', e => {
@@ -167,11 +176,19 @@ function wireDrag() {
   });
 }
 
+// Extra work to run on "Reset to plan" (e.g. the project board re-seeds projects).
+const resetHooks: Array<() => void> = [];
+export function registerResetHook(fn: () => void) {
+  resetHooks.push(fn);
+}
 function wireReset() {
   document.querySelectorAll<HTMLElement>('[data-kanban-reset]').forEach(btn => {
+    if (btn.dataset.wired) return;
+    btn.dataset.wired = '1';
     btn.addEventListener('click', () => {
-      if (confirm('Reset all tasks back to the original GTM plan? This discards your changes.')) {
+      if (confirm('Reset everything back to the original GTM plan? This discards your changes.')) {
         resetAll();
+        resetHooks.forEach(fn => fn());
         render();
       }
     });
@@ -241,7 +258,7 @@ function openMenu(x: number, y: number, ctx: MenuCtx) {
   const sub = document.createElement('div');
   sub.className =
     'submenu absolute left-full -top-1 ml-1 min-w-[170px] bg-white rounded-xl border border-gray-200 shadow-lg py-1 hidden max-h-72 overflow-auto';
-  projects.filter(p => p.id !== ctx.pid).forEach(p => {
+  projects().filter(p => p.id !== ctx.pid).forEach(p => {
     const it = document.createElement('button');
     it.type = 'button';
     it.className = 'w-full text-left px-3 py-1.5 flex items-center gap-2 hover:bg-gray-100';
@@ -287,12 +304,26 @@ function wireContextMenu() {
   });
 }
 
-export function mountKanban() {
-  render();
+export { render };
+
+// Wire the element-level handlers for whatever panels exist right now. Safe to
+// call again after panels are rebuilt (each pass is idempotent), so the dynamic
+// project board can re-attach handlers to freshly created columns.
+export function wireBoard() {
   wireAdd();
-  wireDrag();
+  wireZones();
   wireReset();
-  wireContextMenu();
-  // Re-render when the active project changes (keeps counts/progress fresh).
-  document.addEventListener('projectchange', () => render());
+}
+
+let globalsWired = false;
+export function mountKanban() {
+  if (!globalsWired) {
+    globalsWired = true;
+    wireDragGlobal();
+    wireContextMenu();
+    // Re-render when the active project changes (keeps counts/progress fresh).
+    document.addEventListener('projectchange', () => render());
+  }
+  wireBoard();
+  render();
 }

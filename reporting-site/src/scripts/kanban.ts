@@ -2,6 +2,7 @@
 // then persisted to localStorage so add / edit / delete / move all survive
 // reloads and stay in sync across the homepage board and the /gtm board.
 import gtm from '../data/gtm.json';
+import { listProjects } from './projects';
 
 export interface Task {
   id: string;
@@ -13,7 +14,8 @@ type State = Record<string, Task[]>; // projectId -> tasks
 const KEY = 'bbg_gtm_tasks_v1';
 
 export const columns = gtm.columns as { id: string; label: string }[];
-export const projects = gtm.projects.map(p => ({ id: p.id, name: p.name, color: p.color }));
+// Project metadata is owned by the project store; tasks key off project ids.
+export const projects = () => listProjects().map(p => ({ id: p.id, name: p.name, color: p.color }));
 
 let counter = 0;
 function uid(): string {
@@ -87,4 +89,12 @@ export function removeTask(projectId: string, id: string) {
 export function resetAll() {
   state = seed();
   persist();
+}
+// Drop all tasks for a deleted project so its store entry doesn't linger.
+export function purgeProject(projectId: string) {
+  const s = db();
+  if (s[projectId]) {
+    delete s[projectId];
+    persist();
+  }
 }

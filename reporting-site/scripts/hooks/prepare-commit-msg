@@ -1,0 +1,9 @@
+#!/bin/bash
+COMMIT_MSG_FILE=$1
+COMMIT_SOURCE=$2
+
+if [ -z "$COMMIT_SOURCE" ]; then
+  TIMESTAMP=$(date +"%m%d-%H%M")
+  ORIGINAL_MSG=$(cat "$COMMIT_MSG_FILE")
+  echo "$TIMESTAMP $ORIGINAL_MSG" > "$COMMIT_MSG_FILE"
+fi

@@ -9,12 +9,17 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "hooks:install": "node scripts/install-hooks.mjs",
+    "img:batch": "node scripts/optimize-images-batch.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.2",
     "astro": "^6.0.8",
     "marked": "^17.0.5",
     "tailwindcss": "^4.2.2"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.0"
   }
 }
