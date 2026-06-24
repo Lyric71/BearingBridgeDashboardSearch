@@ -1,4 +1,4 @@
-# Beyond Border Group — SEO & Ads Optimizer
+# BearingBridge Group — SEO & Ads Optimizer
 
 Manual analysis and content generation workflow for beyondbordergroup.com (EN + FR).
 
