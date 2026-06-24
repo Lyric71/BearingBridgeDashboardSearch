@@ -18,7 +18,10 @@ const validHash = createHash('sha256').update(`${login}:${password}`).digest('he
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Login — BBG SEO & Ads</title>
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" href="/icon.png" />
+  <link rel="apple-touch-icon" href="/apple-icon.png" />
+  <title>Login — BearingBridge - Search Dashboard</title>
 </head>
 <body class="min-h-screen flex items-center justify-center" style="background: var(--bbg-gray-light)" data-valid-hash={validHash}>
   <div class="w-full max-w-sm">
