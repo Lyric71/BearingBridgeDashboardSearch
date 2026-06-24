@@ -1,5 +1,17 @@
 ---
+import { createHash } from 'node:crypto';
 import '../styles/global.css';
+
+// Credentials come from env vars (.env locally, project settings on Vercel).
+// We only ship the SHA-256 hash to the client, never the raw values.
+const login = import.meta.env.SITE_LOGIN;
+const password = import.meta.env.SITE_PASSWORD;
+
+if (!login || !password) {
+  throw new Error('Missing SITE_LOGIN / SITE_PASSWORD env vars for the login page.');
+}
+
+const validHash = createHash('sha256').update(`${login}:${password}`).digest('hex');
 ---
 <!doctype html>
 <html lang="en">
@@ -8,13 +20,13 @@ import '../styles/global.css';
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Login — BBG SEO & Ads</title>
 </head>
-<body class="min-h-screen flex items-center justify-center" style="background: var(--bbg-gray-light)">
+<body class="min-h-screen flex items-center justify-center" style="background: var(--bbg-gray-light)" data-valid-hash={validHash}>
   <div class="w-full max-w-sm">
     <div class="rounded-3xl bg-white p-8 border border-gray-100" style="box-shadow: 10px 5px 20px rgba(0,0,0,0.08)">
       <div class="flex justify-center mb-6">
         <img
           src="/logo.svg"
-          alt="Beyond Border Group"
+          alt="BearingBridge"
           class="h-8 w-auto"
         />
       </div>
@@ -54,7 +66,7 @@ import '../styles/global.css';
         </button>
       </form>
     </div>
-    <p class="text-center text-xs mt-4" style="color: var(--bbg-gray-muted)">beyondbordergroup.com</p>
+    <p class="text-center text-xs mt-4" style="color: var(--bbg-gray-muted)">www.bearingbridge.com</p>
   </div>
 
   <script>
@@ -64,8 +76,8 @@ import '../styles/global.css';
       return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
-    // Pre-computed SHA-256 of "Beyond:Beyond888+"
-    const VALID_HASH = '6cc34f09bba51d4c08fd841cb89d568cd1f984e6669fc6394734787827d04b76';
+    // SHA-256 of "login:password" computed at build time from env vars
+    const VALID_HASH = document.body.dataset.validHash!;
 
     // If already logged in, go to dashboard
     if (sessionStorage.getItem('bbg_auth') === 'true') {
