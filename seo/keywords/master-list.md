@@ -1,185 +1,137 @@
-# Master Keyword List — Beyond Border Group
-Date: 2026-03-23
-Topic: China Ecommerce & Market Entry Consulting
+# Master Keyword List — ChinaWebFoundry
+Date: 2026-06-24
+Topic: Web Agency for China — websites, hosting/ICP, Baidu & AI SEO, compliance
+Site profile: Buyer-intent web agency / vendor for companies needing a website *in China* and/or *in Chinese*
+
+> Intent legend: **C** = Commercial / buyer intent · **I** = Informational (pain-point / research) · **N** = Navigational / tool-brand
+> Priority reflects buyer intent + relevance to a web-build/hosting agency offer.
 
 ---
 
-## 1. CORE SERVICE KEYWORDS
+## 1. CORE SERVICE — WEB AGENCY & CHINA WEBSITES  · Priority: HIGH
+Money keywords. Direct vendor/agency intent — map these to the homepage and main service page.
 
-### China Ecommerce Agency (EN)
-- china ecommerce consulting
-- china ecommerce agency
-- china ecommerce consultant
-- ecommerce consulting china
-- china ecommerce services
-- china ecommerce strategy
-- china ecommerce strategy consulting
-- china ecommerce management
-- china ecommerce solutions
-- china ecommerce experts
-- china ecommerce advisor
-
-### Cross-Border Ecommerce (EN)
-- china cross border ecommerce consulting
-- cross border ecommerce china
-- CBEC consulting china
-- CBEC agency
-- cross border ecommerce agency china
-- cross border ecommerce agency
-- china CBEC strategy
-- china CBEC solutions
-- cross border commerce china consultant
-
-### Market Entry
-- china market entry consulting
-- china market entry agency
-- china market entry strategy
-- china market entry services
-- enter chinese market
-- entering the china market
-- how to enter china market
-- china market entry for brands
-- china market expansion consulting
-- launch brand in china
-- china brand launch consulting
-- market entry strategy china consulting
-- china business entry consulting
-- go to market strategy china
+- web agency china — C
+- china web design — C
+- chinese website design — C
+- chinese website development — C
+- website in china — C/I
+- china website — C/I
+- china market entry website — C
+- cross border website china — C
+- bilingual website china — C
 
 ---
 
-## 2. PLATFORM-SPECIFIC KEYWORDS
+## 2. WORDPRESS / WOOCOMMERCE IN CHINA  · Priority: HIGH
+Strong differentiator — most agencies avoid WordPress-in-China. High commercial + how-to value.
 
-### Tmall
-- tmall consulting
-- tmall agency
-- tmall partner agency
-- sell on tmall
-- tmall global consulting
-- tmall setup consulting
-- tmall store management
-- tmall global agency
-- how to sell on tmall
-- tmall for foreign brands
-- tmall market entry
-- tmall partner
-- tmall TP agency
-- open store tmall
-
-### JD.com
-- jd.com consulting
-- jd.com agency
-- sell on jd.com
-- jd worldwide consulting
-- jd.com partner agency
-- how to sell on jd china
-- jd.com store management
-
-### Douyin (TikTok China)
-- douyin ecommerce consulting
-- douyin agency
-- douyin for brands
-- douyin live commerce consulting
-- douyin shop setup
-- tiktok china ecommerce
-- douyin marketing agency
-- live commerce china consulting
-
-### Xiaohongshu / RED
-- xiaohongshu agency
-- little red book agency
-- RED china marketing
-- xiaohongshu marketing consulting
-- little red book marketing consulting
-- xiaohongshu for brands
-- RED ecommerce consulting
-
-### WeChat / Weibo
-- wechat marketing agency
-- wechat consulting
-- wechat store setup
-- weibo marketing agency
-- wechat mini program agency
-- wechat ecommerce consulting
-- china social media agency
-- china social commerce consulting
-
-### Pinduoduo / Other
-- pinduoduo consulting
-- kaola consulting
-- tmall global vs jd worldwide
-- china ecommerce platform consulting
+- wordpress china — C/I
+- wordpress in china — C/I
+- make wordpress work in china — I
+- woocommerce china — C/I
 
 ---
 
-## 3. DIGITAL MARKETING KEYWORDS
+## 3. HOSTING · ICP · INFRASTRUCTURE  · Priority: HIGH
+High buyer intent (hosting/ICP are prerequisites a client must solve) plus strong how-to volume.
 
-- china digital marketing agency
-- china digital marketing consulting
-- china digital marketing services
-- china online marketing agency
-- china seo agency
-- china sem agency
-- china ppc agency
-- china kol marketing
-- china influencer marketing agency
-- china live streaming marketing
-- china content marketing agency
-- chinese digital strategy consulting
-- china social media marketing agency
-- china brand awareness consulting
-- china performance marketing agency
+- china web hosting — C
+- host website in china — C
+- best china hosting — C
+- alibaba cloud hosting — C/N
+- tencent cloud hosting — C/N
+- china cdn — C
+- .cn domain registration — C
+- icp license — C/I
+- icp filing — C/I
+- do i need an icp license — I
+- icp license cost — I
 
 ---
 
-## 4. INDUSTRY/AUDIENCE KEYWORDS
+## 4. PERFORMANCE · ACCESS · GREAT FIREWALL  · Priority: HIGH
+Pain-point / "my site is broken in China" searches — top-of-funnel that converts well into audits & rebuilds.
 
-- sell luxury brands in china
-- sell beauty products in china
-- sell fashion in china
-- sell food in china ecommerce
-- sell health products in china
-- sell supplements in china ecommerce
-- sell cosmetics in china
-- foreign brand china ecommerce
-- international brand china market
-- western brand sell in china
-- european brand china market entry
-- canadian brand china market
-- australian brand china market
+- why is my website slow in china — I
+- website not working in china — I
+- is my website blocked in china — I
+- speed up website in china — I
+- great firewall website — I
+- does google work in china — I
+- is google blocked in china — I
+- wechat browser compatibility — I
 
 ---
 
-## 5. RESEARCH & STRATEGY KEYWORDS
+## 5. BAIDU & CHINA SEO  · Priority: HIGH
+Service + how-to. Tool brands (Tongji / webmaster tools) are navigational but pull research traffic.
 
-- china market research consulting
-- china consumer insights agency
-- china competitive analysis
-- china market feasibility study
-- china ecommerce market research
-- china brand positioning consulting
-- china market opportunity assessment
-- china retail consulting
-- china localization consulting
-- china product localization
+- baidu seo — C/I
+- baidu seo agency — C
+- china seo — C
+- how to rank on baidu — I
+- baidu tongji — N/I
+- baidu index — N/I
+- baidu webmaster tools — N/I
+- sogou seo — I
+- baidu ads — C
 
 ---
 
-## 6. LONG-TAIL / HIGH-INTENT KEYWORDS
+## 6. AI SEARCH / GEO CHINA (EMERGING)  · Priority: MEDIUM-HIGH
+Low-competition, fast-growing. Strong thought-leadership / GEO positioning angle.
 
-- how to sell products in china online
-- how to list products on tmall global
-- how to open tmall global store
-- china ecommerce consulting for small brands
-- china market entry consulting for startups
-- best agency to sell in china
-- china ecommerce agency for western brands
-- how to find chinese distributor
-- china ecommerce without entity
-- sell in china without chinese company
-- china cross border ecommerce without entity
-- cbec vs general trade china
-- tmall global vs jd worldwide which is better
-- china ecommerce cost how much
-- china market entry cost consulting
-- is china ecommerce worth it for my brand
+- geo china — I
+- generative engine optimization china — I
+- ai search optimization china — I
+- baidu ai seo — I
+- deepseek seo — I
+- chinese ai search engines — I
+- how to rank on chinese ai — I
+
+---
+
+## 7. LOCALIZATION · UX · DESIGN BEST PRACTICES  · Priority: MEDIUM
+Supports the build offer; good content-cluster and on-page UX authority.
+
+- china website localization — C/I
+- chinese website translation — C/I
+- mobile first design china — I
+- mobile only china — I
+- chinese web design best practices — I
+- chinese ux design — I
+- wechat mini program development — C
+- hreflang china — I
+
+---
+
+## 8. COMPLIANCE · LEGAL  · Priority: MEDIUM
+High-trust informational. Establishes authority; pairs with hosting/ICP service pages.
+
+- china pipl — I
+- china personal information protection law — I
+- china data privacy law — I
+- china cybersecurity law — I
+- china data security law — I
+- pipl website compliance — I
+- china advertising law compliance — I
+
+---
+
+## 9. DIGITAL MARKETING · SOCIAL · CAMPAIGNS (ADJACENT)  · Priority: LOW-MEDIUM
+Broader funnel / cross-sell. Lower direct web-build intent — treat as supporting content.
+
+- digital marketing china — C/I
+- china content marketing — I
+- zhongcao marketing — I
+- xiaohongshu marketing — I
+- douyin marketing — I
+- kol marketing china — I
+- singles day china — I
+- 618 shopping festival — I
+
+---
+
+### Coverage note
+All 71 supplied keywords are categorized above. Clusters map to a hub-and-spoke content architecture: §1 = service hubs; §2–§8 = supporting clusters that internally link up to the relevant service hub.

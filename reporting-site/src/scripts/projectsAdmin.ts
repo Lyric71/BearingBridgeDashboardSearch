@@ -7,7 +7,6 @@ import {
   createProject,
   updateProject,
   deleteProject,
-  resetProjects,
   PALETTE,
   MODULES,
   type Project,
@@ -20,6 +19,11 @@ const ACTIVE_KEY = 'bbg_active_project';
 
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+// Website is a mandatory field. Normalize for the href (ensure a scheme) and
+// show a clean label (strip scheme + trailing slash) on the card.
+const websiteHref = (url: string) => (/^https?:\/\//i.test(url) ? url : `https://${url}`);
+const websiteLabel = (url: string) => url.replace(/^https?:\/\//i, '').replace(/\/$/, '');
 
 // Sections that belong to a project — each maps to a module, so a section only
 // appears when its module is enabled. Clicking sets the project active + drills in.
@@ -61,6 +65,11 @@ function cardHtml(p: Project): string {
             <h2 class="font-bold text-lg truncate" style="color: ${p.color}">${esc(p.name)}</h2>
           </div>
           <p class="text-xs text-gray-400 mt-1">Owner: ${esc(p.owner || '—')}</p>
+          ${
+            p.website
+              ? `<a href="${esc(websiteHref(p.website))}" target="_blank" rel="noopener" data-project-website class="text-xs mt-1 inline-flex items-center gap-1 text-blue-600 hover:underline break-all">🔗 ${esc(websiteLabel(p.website))}</a>`
+              : `<span class="text-xs mt-1 inline-flex items-center gap-1 text-red-500" title="A website is required">⚠ No website — required</span>`
+          }
         </div>
         <div class="flex gap-1 shrink-0">
           <button type="button" data-project-edit="${p.id}" title="Edit" aria-label="Edit project"
@@ -121,6 +130,12 @@ function openEditor(existing: Project | null, onDone: (savedId?: string) => void
       <h2 class="text-lg font-bold mb-4">${p ? 'Edit project' : 'New project'}</h2>
       <form id="project-form" class="space-y-3">
         ${field('Name', 'name', p?.name ?? '', 'Project name')}
+        <label class="block">
+          <span class="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">Website <span class="text-red-500" title="Required">*</span></span>
+          <input name="website" type="url" required value="${esc(p?.website ?? '')}" placeholder="https://example.com"
+            class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-gray-900 transition-colors" />
+          <span class="block text-xs text-gray-400 mt-1">Every project must be linked to a website.</span>
+        </label>
         <div>
           <span class="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">Modules</span>
           <div class="flex flex-wrap gap-2">
@@ -190,12 +205,21 @@ function openEditor(existing: Project | null, onDone: (savedId?: string) => void
     e.preventDefault();
     const fd = new FormData(form);
     const name = String(fd.get('name') ?? '').trim();
+    const website = String(fd.get('website') ?? '').trim();
+    const errEl = overlay.querySelector('#project-form-error')!;
     if (!name) {
-      overlay.querySelector('#project-form-error')!.classList.remove('hidden');
+      errEl.textContent = 'Name is required.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+    if (!website) {
+      errEl.textContent = 'A website is required — every project must be linked to one.';
+      errEl.classList.remove('hidden');
       return;
     }
     const input: ProjectInput = {
       name,
+      website,
       color: String(fd.get('color') ?? PALETTE[0].value),
       owner: String(fd.get('owner') ?? '').trim(),
       targetCustomers: String(fd.get('targetCustomers') ?? '').trim(),
@@ -275,15 +299,6 @@ export function mountProjectsAdmin() {
         render();
       }),
     ),
-  );
-
-  document.querySelectorAll<HTMLElement>('[data-projects-reset]').forEach(btn =>
-    btn.addEventListener('click', () => {
-      if (confirm('Reset the project list back to the original plan? This discards created/edited projects.')) {
-        resetProjects();
-        render();
-      }
-    }),
   );
 
   render();

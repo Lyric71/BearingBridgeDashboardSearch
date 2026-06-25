@@ -2,16 +2,52 @@
 import Layout from '../../layouts/Layout.astro';
 import { marked } from 'marked';
 import { join } from 'path';
-import { projects, projectDir, readMdFiles, ROOT } from '../../lib/projects';
+import { projects, projectDir, readMdFiles, readJsonIfExists, ROOT } from '../../lib/projects';
+
+// One refresh record written by cwf_serp_ranking.py --cluster (data/projects/<id>/competitors/_history.json).
+interface Indicators { ranked: number; covered: number; total: number; index: number; }
+interface HistoryEntry {
+  ts: string; cluster: string; label: string;
+  before: { cluster: any; global: Indicators };
+  after: { cluster: any; global: Indicators };
+}
 
 // Per project: data/projects/<id>/competitors/*.md (a SERP report per keyword group).
 // Beyond Border Group falls back to the original seo/reports/*.md.
+// Headline KPIs live in the overview report under "## Headline" as bullet lines:
+//   - **Keywords ranked in top 100:** 17/71
+// Pull them out so we can surface them as cards at the top of the page.
+function parseHeadline(raw: string) {
+  const start = raw.indexOf('## Headline');
+  if (start < 0) return [];
+  const section = raw.slice(start).split(/\n##\s/)[0];
+  const out: { label: string; value: string }[] = [];
+  for (const line of section.split('\n')) {
+    const m = line.match(/^-\s*\*\*(.+?):\*\*\s*(.+)$/);
+    if (m) out.push({ label: m[1].trim(), value: m[2].replace(/\*\*/g, '').trim() });
+  }
+  return out;
+}
+
 function loadReports(id: string) {
   let files = readMdFiles(join(projectDir(id), 'competitors'));
   if (files.length === 0 && id === 'beyondbordergroup') {
     files = readMdFiles(join(ROOT, 'seo', 'reports'));
   }
-  return files.map(({ file: f, raw }) => {
+  const overview = files.find(({ file }) => /overview/i.test(file));
+  const headline = overview ? parseHeadline(overview.raw) : [];
+
+  // Refresh history (newest first) grouped by cluster id.
+  const history = readJsonIfExists<HistoryEntry[]>(join(projectDir(id), 'competitors', '_history.json')) ?? [];
+  const historyByCluster = new Map<string, HistoryEntry[]>();
+  for (const h of history) {
+    const list = historyByCluster.get(h.cluster) ?? [];
+    list.push(h);
+    historyByCluster.set(h.cluster, list);
+  }
+
+  const groups = files.map(({ file: f, raw }) => {
+  const cid = f.replace('.md', '');
   const lines = raw.split('\n');
 
   // Extract title from first heading
@@ -42,17 +78,23 @@ function loadReports(id: string) {
   }
 
   return {
-    id: f.replace('.md', ''),
+    id: cid,
+    isOverview: /overview/i.test(cid),
     title,
     meta,
     rankHtml: marked(rankSection),
     scoreHtml: marked(scoreSection),
     stats: { page1: bbgPage1, page2: bbgPage2, missing: bbgMissing, total: tableLines.length },
+    history: (historyByCluster.get(cid) ?? []).slice().reverse(),
   };
   });
+  return { groups, headline };
 }
 
-const byProject = projects.map(p => ({ ...p, groups: loadReports(p.id) }));
+// Accent colours for the headline KPI cards (cycled in order).
+const HEADLINE_COLORS = ['var(--bbg-blue)', 'var(--bbg-gray-dark)', 'var(--bbg-red)'];
+
+const byProject = projects.map(p => ({ ...p, ...loadReports(p.id) }));
 ---
 <Layout title="Competitors" scoped module="seo">
   <div class="mb-8">
@@ -63,9 +105,21 @@ const byProject = projects.map(p => ({ ...p, groups: loadReports(p.id) }));
 
   {byProject.map(p => {
     const groups = p.groups;
+    const headline = p.headline;
+    const canRefresh = p.id === 'chinawebfoundry';
+    const HEADLINE_KEYS = ['ranked', 'covered', 'index'];
     return (
-    <div data-project-panel={p.id} class="hidden">
-  {groups.length > 0 && (
+    <div data-project-panel={p.id} class="hidden" data-competitors-panel data-project={p.id}>
+  {headline.length > 0 ? (
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-10">
+      {headline.map((s, i) => (
+        <div class="rounded-3xl p-6 border border-gray-100 text-center" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05)">
+          <div class="text-3xl font-bold mb-2 tabular-nums" data-kpi={HEADLINE_KEYS[i]} style={`color: ${HEADLINE_COLORS[i % HEADLINE_COLORS.length]}`}>{s.value}</div>
+          <div class="text-xs text-gray-400 uppercase tracking-wide">{s.label}</div>
+        </div>
+      ))}
+    </div>
+  ) : groups.length > 0 && (
     <div class="grid grid-cols-3 gap-3 mb-10">
       {[
         { label: 'Groups tracked', value: groups.length, color: 'var(--bbg-blue)' },
@@ -87,7 +141,7 @@ const byProject = projects.map(p => ({ ...p, groups: loadReports(p.id) }));
     </div>
   ) : (
     groups.map(g => (
-      <details class="mb-6 rounded-3xl border border-gray-100 overflow-hidden group" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05)" open={false}>
+      <details class="mb-6 rounded-3xl border border-gray-100 overflow-hidden group" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05)" open={false} data-group data-cid={g.id}>
         <summary class="flex items-center justify-between px-6 py-4 cursor-pointer select-none hover:bg-gray-50 transition-colors" style="list-style: none">
           <div class="flex items-center gap-4">
             <span class="text-lg font-bold">{g.title}</span>
@@ -96,13 +150,20 @@ const byProject = projects.map(p => ({ ...p, groups: loadReports(p.id) }));
           <div class="flex items-center gap-3">
             {g.stats.page1 > 0 && (
               <span class="text-xs font-semibold px-2 py-1 rounded-full text-white" style="background: var(--bbg-blue)">
-                BBG p1: {g.stats.page1}/{g.stats.total}
+                p1: {g.stats.page1}/{g.stats.total}
               </span>
             )}
             {g.stats.page1 === 0 && (
               <span class="text-xs font-semibold px-2 py-1 rounded-full text-white" style="background: var(--bbg-gray-muted)">
-                BBG not on p1
+                not on p1
               </span>
+            )}
+            {canRefresh && !g.isOverview && (
+              <button type="button" data-refresh data-cid={g.id} title="Re-run live SERP ranking for this cluster"
+                class="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:border-gray-400 hover:text-gray-900 transition-colors">
+                <svg data-refresh-icon class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                Refresh
+              </button>
             )}
             <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -111,6 +172,45 @@ const byProject = projects.map(p => ({ ...p, groups: loadReports(p.id) }));
         </summary>
 
         <div class="border-t border-gray-100">
+          <!-- Live refresh progress (filled by competitorsRefresh.ts) -->
+          <div data-refresh-zone class="hidden px-6 pt-5"></div>
+
+          <!-- Refresh history: before → after for every indicator -->
+          {g.history.length > 0 && (
+            <div data-history class="px-6 pt-5 pb-2">
+              <h3 class="text-xs font-semibold uppercase tracking-widest mb-3" style="color: var(--bbg-gray-muted)">Refresh History</h3>
+              <div class="space-y-2">
+                {g.history.map(h => {
+                  const cb = h.before.cluster, ca = h.after.cluster;
+                  const metrics = [
+                    { k: 'We rank', b: cb?.ranked, a: ca?.ranked, suf: ca ? `/${ca.n}` : '' },
+                    { k: 'Content', b: cb?.covered, a: ca?.covered, suf: ca ? `/${ca.n}` : '' },
+                    { k: 'Cluster index', b: cb?.our_index, a: ca?.our_index, suf: '' },
+                    { k: 'Overall index', b: h.before.global?.index, a: h.after.global?.index, suf: '' },
+                  ];
+                  return (
+                    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-gray-100 px-3 py-2">
+                      <span class="text-xs font-semibold text-gray-500 tabular-nums">{h.ts}</span>
+                      {metrics.map(m => {
+                        const bn = Number(m.b), an = Number(m.a);
+                        const dir = isNaN(bn) || isNaN(an) || an === bn ? 0 : an > bn ? 1 : -1;
+                        const color = dir > 0 ? '#16a34a' : dir < 0 ? 'var(--bbg-red)' : 'var(--bbg-gray-muted)';
+                        return (
+                          <span class="text-xs text-gray-600">
+                            <span class="text-gray-400">{m.k}:</span>{' '}
+                            <span class="tabular-nums">{m.b ?? '—'}{m.suf}</span>
+                            <span class="mx-1" style={`color: ${color}`}>→</span>
+                            <span class="tabular-nums font-semibold" style={`color: ${color}`}>{m.a ?? '—'}{m.suf}</span>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <!-- Rank table: horizontally scrollable -->
           <div class="px-6 pt-5 pb-2">
             <h3 class="text-xs font-semibold uppercase tracking-widest mb-3" style="color: var(--bbg-gray-muted)">Keyword Rankings</h3>
@@ -134,6 +234,11 @@ const byProject = projects.map(p => ({ ...p, groups: loadReports(p.id) }));
     );
   })}
 </Layout>
+
+<script>
+  import { mountCompetitorsRefresh } from '../../scripts/competitorsRefresh';
+  mountCompetitorsRefresh();
+</script>
 
 <style>
   /* Rank colour coding */

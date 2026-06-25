@@ -33,6 +33,8 @@ export interface Project {
   name: string;
   color: string;
   owner: string;
+  // Every project MUST be linked to a website (mandatory). Stored as a full URL.
+  website: string;
   targetCustomers: string;
   preciseTargeting: string;
   rtb: string;
@@ -76,6 +78,7 @@ function seed(): Project[] {
       name: p.name,
       color: p.color,
       owner: p.owner ?? '',
+      website: p.website ?? '',
       targetCustomers: p.targetCustomers ?? '',
       preciseTargeting: p.preciseTargeting ?? '',
       rtb: p.rtb ?? '',
