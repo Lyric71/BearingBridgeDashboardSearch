@@ -201,7 +201,7 @@ function openEditor(existing: Project | null, onDone: (savedId?: string) => void
     if (e.key === 'Escape') { closeModal(); document.removeEventListener('keydown', onKey); }
   });
 
-  form.addEventListener('submit', e => {
+  form.addEventListener('submit', async e => {
     e.preventDefault();
     const fd = new FormData(form);
     const name = String(fd.get('name') ?? '').trim();
@@ -237,15 +237,23 @@ function openEditor(existing: Project | null, onDone: (savedId?: string) => void
         googleAds: fd.get('module-googleAds') === 'on',
       },
     };
-    let savedId: string;
-    if (p) {
-      updateProject(p.id, input);
-      savedId = p.id;
-    } else {
-      savedId = createProject(input).id;
+    const submitBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+    try {
+      let savedId: string;
+      if (p) {
+        await updateProject(p.id, input);
+        savedId = p.id;
+      } else {
+        savedId = (await createProject(input)).id;
+      }
+      closeModal();
+      onDone(savedId);
+    } catch (err) {
+      errEl.textContent = (err as Error).message || 'Could not save. Please try again.';
+      errEl.classList.remove('hidden');
+      if (submitBtn) submitBtn.disabled = false;
     }
-    closeModal();
-    onDone(savedId);
   });
 }
 
@@ -284,10 +292,13 @@ export function mountProjectsAdmin() {
       const id = delBtn.dataset.projectDelete!;
       const proj = listProjects().find(p => p.id === id);
       if (proj && confirm(`Delete project “${proj.name}” and all its data? This can't be undone.`)) {
-        deleteProject(id);
-        purgeProject(id);
-        if (localStorage.getItem(ACTIVE_KEY) === id) localStorage.removeItem(ACTIVE_KEY);
-        render();
+        deleteProject(id)
+          .then(() => {
+            purgeProject(id);
+            if (localStorage.getItem(ACTIVE_KEY) === id) localStorage.removeItem(ACTIVE_KEY);
+            render();
+          })
+          .catch(err => alert((err as Error).message || 'Could not delete the project.'));
       }
     }
   });

@@ -1,19 +1,14 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { join } from 'path';
-import { projects, projectDir, readJsonIfExists, ROOT } from '../../lib/projects';
+import { listProjects } from '../../lib/projects-db';
+import { latestAdsSnapshot } from '../../lib/ads-db';
 
-// Per project: data/projects/<id>/google_ads_performance.json
-// Beyond Border Group falls back to the original data/google_ads_performance.json.
-function loadPerf(id: string): any {
-  let data = readJsonIfExists<any>(join(projectDir(id), 'google_ads_performance.json'));
-  if (!data && id === 'beyondbordergroup') {
-    data = readJsonIfExists<any>(join(ROOT, 'data', 'google_ads_performance.json'));
-  }
-  return data;
-}
-
-const byProject = projects.map(p => ({ ...p, data: loadPerf(p.id) }));
+// Google Ads performance now comes from the ads_snapshots table (latest per
+// project), replacing the per-project JSON files.
+const projects = await listProjects();
+const byProject = await Promise.all(
+  projects.map(async p => ({ ...p, data: await latestAdsSnapshot(p.id) })),
+);
 
 const fmt = (n: number) => n.toLocaleString('en-US');
 const fmtCost = (n: number) => n.toFixed(2);

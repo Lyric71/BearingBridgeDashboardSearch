@@ -198,3 +198,22 @@ with open(output_path, 'w', encoding='utf-8') as f:
     json.dump(output, f, indent=2, ensure_ascii=False)
 
 print(f"\nExported to {output_path}")
+
+# Best-effort: also push to Supabase (single source of truth the web app reads).
+try:
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))  # repo root
+    import supabase_rest
+    if supabase_rest.configured():
+        supabase_rest.upsert('ads_snapshots', [{
+            'project_id': 'beyondbordergroup',  # account-level data owned by BBG
+            'snapshot_date': output['date'],
+            'account': output['account'],
+            'currency': output['currency'],
+            'data': output['timeframes'],
+        }], 'project_id,snapshot_date')
+        print("Synced ads snapshot -> Supabase")
+    else:
+        print("Supabase sync skipped: not configured")
+except Exception as e:
+    print(f"Supabase sync skipped: {e}")

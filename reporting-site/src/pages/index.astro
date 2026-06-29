@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import gtm from '../data/gtm.json';
+import { listProjects } from '../lib/projects-db';
+import { listTasksGrouped } from '../lib/tasks-db';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 
@@ -15,10 +16,12 @@ const curatedStats: Record<string, { metric: string; value: string; note: string
   ],
 };
 
-// Per-project status: curated analytics if present, otherwise the project's own
-// GTM build-out signals (never another project's numbers).
-const statusByProject = gtm.projects.map(p => {
-  const done = p.tasks.filter(t => t.status === 'done').length;
+// Per-project status from the DB: curated analytics if present, otherwise the
+// project's own GTM build-out signals (never another project's numbers).
+const [allProjects, tasksByProject] = await Promise.all([listProjects(), listTasksGrouped()]);
+const statusByProject = allProjects.map(p => {
+  const tasks = tasksByProject[p.id] ?? [];
+  const done = tasks.filter(t => t.status === 'done').length;
   return {
     id: p.id,
     name: p.name,
@@ -26,7 +29,7 @@ const statusByProject = gtm.projects.map(p => {
     owner: p.owner,
     channels: p.channels,
     tasksDone: done,
-    tasksTotal: p.tasks.length,
+    tasksTotal: tasks.length,
     curated: curatedStats[p.id] ?? null,
   };
 });

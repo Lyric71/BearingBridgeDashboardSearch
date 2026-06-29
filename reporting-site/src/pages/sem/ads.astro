@@ -1,6 +1,8 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { projects } from '../../lib/projects';
+import { listProjects } from '../../lib/projects-db';
+
+const projects = await listProjects();
 
 const bbgCampaigns = [
   {

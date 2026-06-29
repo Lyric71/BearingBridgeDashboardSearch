@@ -1,15 +1,15 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { marked } from 'marked';
-import { join } from 'path';
-import { projects, projectDir, readMdFiles, readJsonIfExists, ROOT } from '../../lib/projects';
+import { listProjects } from '../../lib/projects-db';
+import { listReports, listHistory, type SerpReport } from '../../lib/serp-db';
 
-// One refresh record written by cwf_serp_ranking.py --cluster (data/projects/<id>/competitors/_history.json).
-interface Indicators { ranked: number; covered: number; total: number; index: number; }
+const projects = await listProjects();
+
+// A refresh record (serp_history table); empty until the SERP script writes one.
 interface HistoryEntry {
-  ts: string; cluster: string; label: string;
-  before: { cluster: any; global: Indicators };
-  after: { cluster: any; global: Indicators };
+  ts: string; cluster: string; label: string | null;
+  before: any; after: any;
 }
 
 // Per project: data/projects/<id>/competitors/*.md (a SERP report per keyword group).
@@ -29,16 +29,20 @@ function parseHeadline(raw: string) {
   return out;
 }
 
-function loadReports(id: string) {
-  let files = readMdFiles(join(projectDir(id), 'competitors'));
-  if (files.length === 0 && id === 'beyondbordergroup') {
-    files = readMdFiles(join(ROOT, 'seo', 'reports'));
-  }
-  const overview = files.find(({ file }) => /overview/i.test(file));
-  const headline = overview ? parseHeadline(overview.raw) : [];
+function buildGroups(reports: SerpReport[], history: HistoryEntry[]) {
+  // Headline KPIs come from the overview report's parsed indicators (robust,
+  // no markdown re-parsing). Falls back to parsing the body if absent.
+  const overview = reports.find(r => /overview/i.test(r.cluster));
+  const ind = overview?.indicators ?? null;
+  const headline = ind
+    ? [
+        { label: 'Keywords ranked in top 100', value: `${ind.ranked ?? 0}/${ind.total ?? 0}` },
+        { label: 'Keywords with dedicated on-site content', value: `${ind.covered ?? 0}/${ind.total ?? 0}` },
+        { label: 'Overall ChinaWebFoundry visibility index', value: `${ind.index ?? 0}/100` },
+      ]
+    : overview ? parseHeadline(overview.content_md) : [];
 
   // Refresh history (newest first) grouped by cluster id.
-  const history = readJsonIfExists<HistoryEntry[]>(join(projectDir(id), 'competitors', '_history.json')) ?? [];
   const historyByCluster = new Map<string, HistoryEntry[]>();
   for (const h of history) {
     const list = historyByCluster.get(h.cluster) ?? [];
@@ -46,17 +50,18 @@ function loadReports(id: string) {
     historyByCluster.set(h.cluster, list);
   }
 
-  const groups = files.map(({ file: f, raw }) => {
-  const cid = f.replace('.md', '');
+  const groups = reports.map(r => {
+  const cid = r.cluster;
+  const raw = (r.content_md ?? '').replace(/\r\n?/g, '\n'); // normalize CRLF
   const lines = raw.split('\n');
 
-  // Extract title from first heading
+  // Extract title from first heading (prefer the stored title).
   const titleLine = lines.find(l => l.startsWith('# '));
-  const title = titleLine ? titleLine.replace(/^#\s*SERP Report\s*[—-]\s*/, '').replace(/^#\s*/, '') : f;
+  const title = r.title || (titleLine ? titleLine.replace(/^#\s*SERP Report\s*[—-]\s*/, '').replace(/^#\s*/, '') : cid);
 
   // Extract meta line
   const metaLine = lines.find(l => l.startsWith('Date:'));
-  const meta = metaLine || '';
+  const meta = metaLine || (r.report_date ? `Date: ${r.report_date}` : '');
 
   // Split into rank table section and competitors section
   const scoreSep = raw.indexOf('## Top 10 Competitors');
@@ -94,7 +99,12 @@ function loadReports(id: string) {
 // Accent colours for the headline KPI cards (cycled in order).
 const HEADLINE_COLORS = ['var(--bbg-blue)', 'var(--bbg-gray-dark)', 'var(--bbg-red)'];
 
-const byProject = projects.map(p => ({ ...p, ...loadReports(p.id) }));
+const byProject = await Promise.all(
+  projects.map(async p => {
+    const [reports, history] = await Promise.all([listReports(p.id), listHistory(p.id)]);
+    return { ...p, ...buildGroups(reports, history as HistoryEntry[]) };
+  }),
+);
 ---
 <Layout title="Competitors" scoped module="seo">
   <div class="mb-8">

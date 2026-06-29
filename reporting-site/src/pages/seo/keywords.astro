@@ -1,6 +1,9 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { projects } from '../../lib/projects';
+import { listProjects } from '../../lib/projects-db';
+import { listKeywordsGrouped } from '../../lib/keywords-db';
+
+const [projects, keywordsByProject] = await Promise.all([listProjects(), listKeywordsGrouped()]);
 
 // Sortable column headers. Keyword/cluster sort alphabetically; language/intent
 // group rows; priority sorts by its ordinal rank (see scripts/keywords.ts).
@@ -16,8 +19,11 @@ const COLUMNS = [
   <div class="mb-8">
     <a href="/" class="link-muted mb-4 inline-block">&larr; Dashboard</a>
     <h1 class="font-heading text-3xl font-bold tracking-tight mb-2" style="color: var(--bbg-blue)">🔍 Keywords</h1>
-    <p class="text-muted-foreground">Sortable, editable keyword list · <span data-active-project-name>this project</span> · <span class="text-muted-foreground/70">changes save in this browser</span></p>
+    <p class="text-muted-foreground">Sortable, editable keyword list · <span data-active-project-name>this project</span> · <span class="text-muted-foreground/70">changes are saved to the shared database</span></p>
   </div>
+
+  <!-- Server-rendered keywords for the client store to hydrate from. -->
+  <script id="keywords-data" type="application/json" is:inline set:html={JSON.stringify(keywordsByProject)}></script>
 
   {projects.map(p => (
     <div data-project-panel={p.id} class="hidden">

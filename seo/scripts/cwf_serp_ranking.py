@@ -492,36 +492,65 @@ def append_history(entry):
     hist.append(entry)
     HISTORY_PATH.write_text(json.dumps(hist, indent=2), encoding="utf-8")
 
+# ── Supabase sync (single source of truth) ───────────────────────────────────────
+def _parse_indicators(raw):
+    """Pull {ranked, covered, total, index} from a report's headline bullets."""
+    raw = raw.replace("\r\n", "\n").replace("\r", "\n")
+    out = {}
+    for m in re.finditer(r"^-\s*\*\*(.+?):\*\*\s*(.+)$", raw, re.M):
+        label = m.group(1).lower()
+        val = m.group(2).replace("**", "").strip()
+        frac = re.search(r"(\d+)\s*/\s*(\d+)", val)
+        if "ranked" in label and frac:
+            out["ranked"], out["total"] = int(frac.group(1)), int(frac.group(2))
+        elif "content" in label and frac:
+            out["covered"] = int(frac.group(1))
+        elif "index" in label:
+            num = re.search(r"([\d.]+)", val)
+            if num:
+                out["index"] = float(num.group(1))
+    return out or None
+
+def sync_to_db(project_id="chinawebfoundry"):
+    """Best-effort: push the freshly written reports + history to Supabase so the
+    web app (which reads the DB) reflects this run. Never breaks the file flow."""
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # repo root
+        import supabase_rest
+        if not supabase_rest.configured():
+            print("  ! Supabase sync skipped: not configured")
+            return
+        rows = []
+        for p in sorted(OUT_DIR.glob("*.md")):
+            raw = p.read_text(encoding="utf-8")
+            lines = raw.split("\n")
+            title_line = next((l for l in lines if l.startswith("# ")), None)
+            title = (re.sub(r"^#\s*(SERP Report\s*[—-]\s*)?", "", title_line).strip()
+                     if title_line else p.stem)
+            date_line = next((l for l in lines if l.startswith("Date:")), None)
+            dm = re.search(r"(\d{4}-\d{2}-\d{2})", date_line) if date_line else None
+            rows.append({
+                "project_id": project_id, "cluster": p.stem, "title": title,
+                "report_date": dm.group(1) if dm else None,
+                "content_md": raw, "indicators": _parse_indicators(raw),
+            })
+        supabase_rest.upsert("serp_reports", rows, "project_id,cluster")
+        if HISTORY_PATH.exists():
+            hist = json.loads(HISTORY_PATH.read_text(encoding="utf-8"))
+            supabase_rest.delete_eq("serp_history", "project_id", project_id)
+            hrows = [{"project_id": project_id, "cluster": h.get("cluster"),
+                      "label": h.get("label"), "ts": h.get("ts"),
+                      "before": h.get("before"), "after": h.get("after")} for h in hist]
+            if hrows:
+                supabase_rest.upsert("serp_history", hrows, "id")
+        print(f"  synced {len(rows)} reports -> Supabase")
+    except Exception as e:
+        print(f"  ! Supabase sync skipped: {e}")
+
 # ── Runs ──────────────────────────────────────────────────────────────────────────
-def run_full():
-    all_kw = [kw for _, _, kws in CLUSTERS for kw in kws]
-    print(f"ChinaWebFoundry SERP run — {len(all_kw)} keywords, {len(CLUSTERS)} clusters\n")
-
-    organic_cache = {}
-    for cid, label, kws in CLUSTERS:
-        print(f"[{cid}] {label}")
-        for kw in kws:
-            ok, items = get_serp(kw)
-            organic_cache[kw] = items
-            r = next((i.get("rank_absolute") for i in items
-                      if US in extract_domain(i.get("url", ""))), None)
-            print(f"    {kw:42s} us={r if r else '—'}")
-            time.sleep(0.4)
-
-    print("\nFetching search volumes...")
-    volumes = {}
-    for i in range(0, len(all_kw), 50):
-        volumes.update(get_volumes(all_kw[i:i + 50]))
-        time.sleep(0.4)
-
-    print("\nBuilding reports...")
-    by_cid = {}
-    for cid, label, kws in CLUSTERS:
-        by_cid[cid] = build_cluster(cid, label, kws, organic_cache, volumes)
-    save_summaries(by_cid)
-    build_overview(ordered_summaries(by_cid))
-    print("\nDone.")
-
+# Full-site refresh is intentionally not supported — refresh one cluster
+# (section) at a time via --cluster. This keeps each run cheap/fast and matches
+# the per-section "Refresh" buttons on the dashboard.
 def run_cluster(cid):
     """Refresh a single cluster, streaming keyword-by-keyword progress as JSON
     lines, then rebuild that cluster's report + the global overview."""
@@ -557,18 +586,18 @@ def run_cluster(cid):
     entry = {"ts": date.today().strftime("%Y-%m-%d"), "cluster": cid, "label": label,
              "before": before, "after": after}
     append_history(entry)
+    sync_to_db()
     emit({"event": "done", **entry})
 
 # ── Main ────────────────────────────────────────────────────────────────────────
 def main():
-    ap = argparse.ArgumentParser(description="ChinaWebFoundry SERP ranking report")
-    ap.add_argument("--cluster", help="Refresh only this cluster id (e.g. 05-baidu-china-seo)")
+    ap = argparse.ArgumentParser(description="ChinaWebFoundry SERP ranking report (per-cluster)")
+    ap.add_argument("--cluster", required=True,
+                    help="Cluster id to refresh, e.g. 05-baidu-china-seo. Full-site refresh is "
+                         "intentionally unsupported — refresh section by section.")
     ap.add_argument("--stream", action="store_true", help="Emit JSON progress lines (used by the dashboard)")
     args = ap.parse_args()
-    if args.cluster:
-        run_cluster(args.cluster)
-    else:
-        run_full()
+    run_cluster(args.cluster)
 
 if __name__ == "__main__":
     main()

@@ -11,6 +11,7 @@ import {
   moveTask,
   removeTask,
   resetAll,
+  setTaskResyncHandler,
   type Task,
 } from './kanban';
 
@@ -185,11 +186,15 @@ function wireReset() {
   document.querySelectorAll<HTMLElement>('[data-kanban-reset]').forEach(btn => {
     if (btn.dataset.wired) return;
     btn.dataset.wired = '1';
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       if (confirm('Reset everything back to the original GTM plan? This discards your changes.')) {
-        resetAll();
-        resetHooks.forEach(fn => fn());
-        render();
+        try {
+          await resetAll();
+          resetHooks.forEach(fn => fn());
+          render();
+        } catch (err) {
+          alert(`Could not reset: ${(err as Error).message}`);
+        }
       }
     });
   });
@@ -323,6 +328,8 @@ export function mountKanban() {
     wireContextMenu();
     // Re-render when the active project changes (keeps counts/progress fresh).
     document.addEventListener('projectchange', () => render());
+    // If a background task write fails, the store resyncs — re-render to match.
+    setTaskResyncHandler(() => render());
   }
   wireBoard();
   render();

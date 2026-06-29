@@ -8,6 +8,7 @@ import {
   removeKeyword,
   duplicateKeyword,
   resetKeywords,
+  setKeywordResyncHandler,
   LANGUAGES,
   INTENTS,
   PRIORITIES,
@@ -309,10 +310,10 @@ function wirePanel(panel: HTMLElement) {
   );
 
   // Reset.
-  panel.querySelector<HTMLElement>('[data-kw-reset]')?.addEventListener('click', () => {
+  panel.querySelector<HTMLElement>('[data-kw-reset]')?.addEventListener('click', async () => {
     if (confirm('Reset keywords for this project back to the original list? This discards your edits.')) {
-      resetKeywords(id);
-      refresh();
+      try { await resetKeywords(id); refresh(); }
+      catch (err) { alert(`Could not reset: ${(err as Error).message}`); }
     }
   });
 
@@ -338,5 +339,8 @@ function wirePanel(panel: HTMLElement) {
 }
 
 export function mountKeywordTables() {
-  document.querySelectorAll<HTMLElement>('[data-kw-panel]').forEach(wirePanel);
+  const panels = Array.from(document.querySelectorAll<HTMLElement>('[data-kw-panel]'));
+  panels.forEach(wirePanel);
+  // If a background write fails, the store resyncs — re-render every panel.
+  setKeywordResyncHandler(() => panels.forEach(renderPanel));
 }

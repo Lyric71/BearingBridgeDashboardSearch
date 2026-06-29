@@ -1,6 +1,15 @@
 ---
 import '../styles/global.css';
-import { projects } from '../lib/projects';
+import { listProjects } from '../lib/projects-db';
+import { listTasksGrouped, listColumns } from '../lib/tasks-db';
+// Projects/tasks/columns come from the DB (single source of truth), rendered
+// server-side so the UI and client stores hydrate with correct data on first
+// paint without an API round-trip.
+const [projects, tasks, columns] = await Promise.all([
+  listProjects(),
+  listTasksGrouped(),
+  listColumns(),
+]);
 interface Props { title: string; scoped?: boolean; module?: string; }
 const { title, scoped = false, module } = Astro.props;
 // Each nav item may belong to a module; it's hidden when the active project
@@ -93,6 +102,12 @@ const current = Astro.url.pathname;
       window.location.replace('/login');
     }
   </script>
+
+  <!-- Server-rendered data (single source of truth) for the client stores to
+       hydrate from synchronously, so reads work before any API round-trip. -->
+  <script id="projects-data" type="application/json" is:inline set:html={JSON.stringify(projects)}></script>
+  <script id="tasks-data" type="application/json" is:inline set:html={JSON.stringify(tasks)}></script>
+  <script id="columns-data" type="application/json" is:inline set:html={JSON.stringify(columns)}></script>
 
   <!-- Global project context: drives every [data-project-panel] on the page -->
   <script>

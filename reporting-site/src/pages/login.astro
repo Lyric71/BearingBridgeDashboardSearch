@@ -94,6 +94,8 @@ const validHash = createHash('sha256').update(`${login}:${password}`).digest('he
 
       if (hash === VALID_HASH) {
         sessionStorage.setItem('bbg_auth', 'true');
+        // Same hash doubles as the bearer token for /api/* calls (see middleware).
+        sessionStorage.setItem('bbg_session', VALID_HASH);
         window.location.replace('/');
       } else {
         document.getElementById('error-msg')!.classList.remove('hidden');
