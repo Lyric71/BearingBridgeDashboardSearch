@@ -23,9 +23,9 @@ const validHash = createHash('sha256').update(`${login}:${password}`).digest('he
   <link rel="apple-touch-icon" href="/apple-icon.png" />
   <title>Login — BearingBridge - Search Dashboard</title>
 </head>
-<body class="min-h-screen flex items-center justify-center" style="background: var(--bbg-gray-light)" data-valid-hash={validHash}>
+<body class="min-h-screen flex items-center justify-center bg-muted" data-valid-hash={validHash}>
   <div class="w-full max-w-sm">
-    <div class="rounded-3xl bg-white p-8 border border-gray-100" style="box-shadow: 10px 5px 20px rgba(0,0,0,0.08)">
+    <div class="ui-card p-8 shadow-xl">
       <div class="flex justify-center mb-6">
         <img
           src="/logo.svg"
@@ -34,36 +34,35 @@ const validHash = createHash('sha256').update(`${login}:${password}`).digest('he
         />
       </div>
       <h1 class="text-xl font-bold text-center mb-1">SEO & Ads Intelligence</h1>
-      <p class="text-sm text-gray-400 text-center mb-6">Sign in to access reports</p>
+      <p class="text-sm text-muted-foreground text-center mb-6">Sign in to access reports</p>
 
       <form id="login-form" class="space-y-4">
         <div>
-          <label for="username" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">Login</label>
+          <label for="username" class="block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Login</label>
           <input
             id="username"
             type="text"
             autocomplete="username"
             required
-            class="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-gray-900 transition-colors"
+            class="ui-input px-4 py-2.5"
             placeholder="Enter login"
           />
         </div>
         <div>
-          <label for="password" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">Password</label>
+          <label for="password" class="block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Password</label>
           <input
             id="password"
             type="password"
             autocomplete="current-password"
             required
-            class="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-gray-900 transition-colors"
+            class="ui-input px-4 py-2.5"
             placeholder="Enter password"
           />
         </div>
         <p id="error-msg" class="text-sm text-red-500 hidden">Invalid login or password.</p>
         <button
           type="submit"
-          class="w-full py-2.5 rounded-lg text-sm font-semibold text-white transition-colors"
-          style="background: var(--bbg-gray-dark)"
+          class="btn-primary w-full py-2.5"
         >
           Sign in
         </button>

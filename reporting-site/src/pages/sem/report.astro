@@ -21,9 +21,9 @@ const colors = ['#2563eb', '#16a34a', '#e8562a'];
 ---
 <Layout title="Click Report" scoped module="googleAds">
   <div class="mb-8">
-    <a href="/" class="text-sm text-gray-400 hover:text-gray-600 mb-4 inline-block">&larr; Dashboard</a>
-    <h1 class="text-3xl font-bold mb-2" style="color: var(--bbg-orange)">Keyword Click Report</h1>
-    <p class="text-gray-400 text-sm">Clicks, impressions &amp; cost per keyword · <span data-active-project-name>this project</span></p>
+    <a href="/" class="link-muted mb-4 inline-block">&larr; Dashboard</a>
+    <h1 class="font-heading text-3xl font-bold tracking-tight mb-2" style="color: var(--bbg-orange)">Keyword Click Report</h1>
+    <p class="text-muted-foreground text-sm">Clicks, impressions &amp; cost per keyword · <span data-active-project-name>this project</span></p>
   </div>
 
   {byProject.map(p => {
@@ -32,13 +32,13 @@ const colors = ['#2563eb', '#16a34a', '#e8562a'];
     return (
     <div data-project-panel={p.id} class="hidden">
       {!data ? (
-        <div class="rounded-3xl border border-dashed border-gray-200 p-12 text-center">
-          <div class="text-gray-400 mb-1">No click data for <span class="font-semibold" style={`color: ${p.color}`}>{p.name}</span> yet.</div>
-          <div class="text-xs text-gray-400">Export to <code>data/projects/{p.id}/google_ads_performance.json</code></div>
+        <div class="ui-empty">
+          <div class="mb-1">No click data for <span class="font-semibold" style={`color: ${p.color}`}>{p.name}</span> yet.</div>
+          <div class="text-xs">Export to <code>data/projects/{p.id}/google_ads_performance.json</code></div>
         </div>
       ) : (
       <>
-      <p class="text-gray-400 text-sm mb-6">Account {data.account} · Exported {data.date}</p>
+      <p class="text-muted-foreground text-sm mb-6">Account {data.account} · Exported {data.date}</p>
 
       <!-- Timeframe tabs (scoped to this project) -->
       <div class="flex gap-2 mb-6 tf-tabs" data-tf-scope={p.id}>
@@ -64,28 +64,28 @@ const colors = ['#2563eb', '#16a34a', '#e8562a'];
             </p>
 
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-              <div class="rounded-2xl border border-gray-100 p-5" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05)">
-                <div class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Clicks</div>
-                <div class="text-2xl font-bold" style="color: var(--bbg-blue)">{fmt(tf.totals.clicks)}</div>
+              <div class="ui-card p-5">
+                <div class="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Clicks</div>
+                <div class="text-2xl font-bold tabular-nums" style="color: var(--bbg-blue)">{fmt(tf.totals.clicks)}</div>
               </div>
-              <div class="rounded-2xl border border-gray-100 p-5" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05)">
-                <div class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Impressions</div>
-                <div class="text-2xl font-bold" style="color: var(--bbg-purple)">{fmt(tf.totals.impressions)}</div>
+              <div class="ui-card p-5">
+                <div class="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Impressions</div>
+                <div class="text-2xl font-bold tabular-nums" style="color: var(--bbg-purple)">{fmt(tf.totals.impressions)}</div>
               </div>
-              <div class="rounded-2xl border border-gray-100 p-5" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05)">
-                <div class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Spend</div>
-                <div class="text-2xl font-bold" style="color: var(--bbg-red)">{data.currency} {fmtCost(tf.totals.cost)}</div>
+              <div class="ui-card p-5">
+                <div class="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Spend</div>
+                <div class="text-2xl font-bold tabular-nums" style="color: var(--bbg-red)">{data.currency} {fmtCost(tf.totals.cost)}</div>
               </div>
-              <div class="rounded-2xl border border-gray-100 p-5" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05)">
-                <div class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Avg CPC</div>
-                <div class="text-2xl font-bold" style="color: var(--bbg-orange)">{data.currency} {fmtCost(tf.totals.avg_cpc)}</div>
+              <div class="ui-card p-5">
+                <div class="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Avg CPC</div>
+                <div class="text-2xl font-bold tabular-nums" style="color: var(--bbg-orange)">{data.currency} {fmtCost(tf.totals.avg_cpc)}</div>
               </div>
             </div>
 
             {tf.campaigns.map((campaign: any, ci: number) => {
               const color = colors[ci % colors.length];
               return (
-                <div class="mb-10 border border-gray-200 rounded-xl overflow-hidden">
+                <div class="mb-10 ui-card overflow-hidden">
                   <div class="px-6 py-4 flex flex-wrap items-center gap-3" style={`background: ${color}18; border-bottom: 2px solid ${color}`}>
                     <h2 class="font-bold text-lg" style={`color: ${color}`}>{campaign.name}</h2>
                     <span class={`text-xs px-2 py-0.5 rounded ${campaign.status === 'ENABLED' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
@@ -99,10 +99,10 @@ const colors = ['#2563eb', '#16a34a', '#e8562a'];
                     </div>
                   </div>
 
-                  <div class="divide-y divide-gray-100">
+                  <div class="divide-y divide-border">
                     {campaign.ad_groups.map((ag: any) => (
                       <details class="group" open={ag.totals.clicks > 0}>
-                        <summary class="flex flex-wrap items-center gap-3 px-6 py-3 cursor-pointer hover:bg-gray-50 list-none">
+                        <summary class="flex flex-wrap items-center gap-3 px-6 py-3 cursor-pointer hover:bg-muted list-none">
                           <span class="font-medium text-gray-800">{ag.name}</span>
                           <span class={`text-xs px-1.5 py-0.5 rounded ${ag.status === 'ENABLED' ? 'bg-green-50 text-green-600' : 'bg-gray-50 text-gray-400'}`}>
                             {ag.status}

@@ -95,18 +95,18 @@ function rowHtml(k: Keyword): string {
   return `
     <tr data-kw-row="${k.id}">
       <td class="font-medium">${esc(k.keyword)}</td>
-      <td><span class="text-xs font-semibold px-2 py-0.5 rounded border border-gray-200 text-gray-600">${esc(k.language)}</span></td>
+      <td><span class="text-xs font-semibold px-2 py-0.5 rounded border border-border text-muted-foreground">${esc(k.language)}</span></td>
       <td>${pill(k.intent, intentColor[k.intent] ?? 'var(--bbg-gray-muted)')}</td>
-      <td class="text-gray-600">${esc(k.cluster)}</td>
+      <td class="text-muted-foreground">${esc(k.cluster)}</td>
       <td>${pill(k.priority, priorityColor[k.priority] ?? 'var(--bbg-gray-muted)')}</td>
       <td>
         <div class="flex gap-1 justify-end">
           <button type="button" data-kw-edit="${k.id}" title="Edit" aria-label="Edit keyword"
-            class="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:text-gray-700 hover:border-gray-400 transition-colors">✎</button>
+            class="w-7 h-7 flex items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">✎</button>
           <button type="button" data-kw-dup="${k.id}" title="Duplicate" aria-label="Duplicate keyword"
-            class="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:text-gray-700 hover:border-gray-400 transition-colors">⧉</button>
+            class="w-7 h-7 flex items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">⧉</button>
           <button type="button" data-kw-del="${k.id}" title="Delete" aria-label="Delete keyword"
-            class="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:text-red-600 hover:border-red-300 transition-colors">✕</button>
+            class="w-7 h-7 flex items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-red-600 hover:border-red-300 transition-colors">✕</button>
         </div>
       </td>
     </tr>`;
@@ -166,7 +166,6 @@ function renderPanel(panel: HTMLElement) {
     const active = th.dataset.sort === state.sort.key;
     const caret = th.querySelector('[data-caret]');
     if (caret) caret.textContent = active ? (state.sort.dir === 1 ? '▲' : '▼') : '';
-    th.classList.toggle('text-white', true);
   });
 }
 
@@ -180,8 +179,8 @@ function closeModal() {
 function selectField(label: string, name: string, options: string[], value: string): string {
   return `
     <label class="block">
-      <span class="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">${label}</span>
-      <select name="${name}" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:border-gray-900 transition-colors">
+      <span class="block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">${label}</span>
+      <select name="${name}" class="ui-select w-full">
         ${options.map(o => `<option value="${esc(o)}" ${o === value ? 'selected' : ''}>${esc(o)}</option>`).join('')}
       </select>
     </label>`;
@@ -190,9 +189,9 @@ function selectField(label: string, name: string, options: string[], value: stri
 function textField(label: string, name: string, value: string, placeholder = ''): string {
   return `
     <label class="block">
-      <span class="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">${label}</span>
+      <span class="block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">${label}</span>
       <input name="${name}" value="${esc(value)}" placeholder="${esc(placeholder)}"
-        class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-gray-900 transition-colors" />
+        class="ui-input" />
     </label>`;
 }
 
@@ -204,7 +203,7 @@ function openEditor(projectId: string, existing: Keyword | null, clusters: strin
   const overlay = document.createElement('div');
   overlay.className = 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30';
   overlay.innerHTML = `
-    <div class="w-full max-w-md max-h-[90vh] overflow-auto rounded-3xl bg-white p-6 border border-gray-100" style="box-shadow: 10px 5px 30px rgba(0,0,0,0.15)">
+    <div class="w-full max-w-md max-h-[90vh] overflow-auto ui-card p-6 shadow-xl">
       <h2 class="text-lg font-bold mb-4">${k ? 'Edit keyword' : 'Add keyword'}</h2>
       <form id="kw-form" class="space-y-3">
         ${textField('Keyword', 'keyword', k?.keyword ?? '', 'e.g. wordpress china')}
@@ -215,14 +214,14 @@ function openEditor(projectId: string, existing: Keyword | null, clusters: strin
         <label class="block">
           <span class="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">Cluster</span>
           <input name="cluster" list="kw-clusters" value="${esc(k?.cluster ?? '')}" placeholder="e.g. Hosting & ICP"
-            class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-gray-900 transition-colors" />
+            class="ui-input" />
           <datalist id="kw-clusters">${clusterList.map(c => `<option value="${esc(c)}"></option>`).join('')}</datalist>
         </label>
         ${selectField('Priority', 'priority', PRIORITIES, k?.priority ?? 'Medium')}
         <p id="kw-form-error" class="text-sm text-red-500 hidden">Keyword is required.</p>
         <div class="flex justify-end gap-2 pt-2">
-          <button type="button" data-cancel class="px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:border-gray-400">Cancel</button>
-          <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background: var(--bbg-gray-dark)">${k ? 'Save' : 'Add'}</button>
+          <button type="button" data-cancel class="btn-outline">Cancel</button>
+          <button type="submit" class="btn-primary">${k ? 'Save' : 'Add'}</button>
         </div>
       </form>
     </div>`;

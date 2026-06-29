@@ -323,23 +323,23 @@ const byProject = projects.map(p => {
 ---
 <Layout title="Google Ads" scoped module="googleAds">
   <div class="mb-8">
-    <a href="/" class="text-sm text-gray-400 hover:text-gray-600 mb-4 inline-block">&larr; Dashboard</a>
-    <h1 class="text-3xl font-bold mb-2" style="color: var(--bbg-orange)">Google Ads Campaigns</h1>
-    <p class="text-gray-500 mb-1">Campaign structure, ad groups, RSA copy &amp; negatives · <span data-active-project-name>this project</span></p>
+    <a href="/" class="link-muted mb-4 inline-block">&larr; Dashboard</a>
+    <h1 class="font-heading text-3xl font-bold tracking-tight mb-2" style="color: var(--bbg-orange)">Google Ads Campaigns</h1>
+    <p class="text-muted-foreground mb-1">Campaign structure, ad groups, RSA copy &amp; negatives · <span data-active-project-name>this project</span></p>
   </div>
 
   {byProject.map(p => (
     <div data-project-panel={p.id} class="hidden">
       {p.campaigns.length === 0 ? (
-        <div class="rounded-3xl border border-dashed border-gray-200 p-12 text-center">
-          <div class="text-gray-400 mb-1">No Google Ads campaigns for <span class="font-semibold" style={`color: ${p.color}`}>{p.name}</span> yet.</div>
-          <div class="text-xs text-gray-400">Build out the campaign plan for this project to populate this view.</div>
+        <div class="ui-empty">
+          <div class="mb-1">No Google Ads campaigns for <span class="font-semibold" style={`color: ${p.color}`}>{p.name}</span> yet.</div>
+          <div class="text-xs">Build out the campaign plan for this project to populate this view.</div>
         </div>
       ) : (
       <>
-      <p class="text-gray-400 text-sm mb-6">{p.campaigns.length} campaigns · {p.totalAdGroups} ad groups · {p.totalKeywords} keywords</p>
+      <p class="text-muted-foreground text-sm mb-6">{p.campaigns.length} campaigns · {p.totalAdGroups} ad groups · {p.totalKeywords} keywords</p>
   {p.campaigns.map(campaign => (
-    <div class="mb-10 border border-gray-200 rounded-xl overflow-hidden">
+    <div class="mb-10 ui-card overflow-hidden">
       <!-- Campaign header -->
       <div class="px-6 py-4 flex items-center gap-3" style={`background: ${campaign.color}18; border-bottom: 2px solid ${campaign.color}`}>
         <span class="text-xs font-bold px-2 py-0.5 rounded text-white" style={`background: ${campaign.color}`}>{campaign.id}</span>
@@ -349,10 +349,10 @@ const byProject = projects.map(p => {
       </div>
 
       <!-- Ad groups -->
-      <div class="divide-y divide-gray-100">
+      <div class="divide-y divide-border">
         {campaign.adGroups.map(ag => (
           <details class="group">
-            <summary class="flex items-center gap-3 px-6 py-3 cursor-pointer hover:bg-gray-50 list-none">
+            <summary class="flex items-center gap-3 px-6 py-3 cursor-pointer hover:bg-muted list-none">
               <span class="text-xs font-mono font-bold text-gray-400">{ag.id}</span>
               <span class="font-medium text-gray-800">{ag.name}</span>
               <span class="text-xs text-gray-400 ml-1">{ag.keywords.length} kw · {ag.headlines.length} headlines</span>
@@ -405,10 +405,10 @@ const byProject = projects.map(p => {
   ))}
 
   <!-- Negative keywords -->
-  <div class="border border-gray-200 rounded-xl overflow-hidden">
-    <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
-      <h2 class="font-bold text-gray-700">Global Negative Keywords</h2>
-      <p class="text-xs text-gray-400 mt-0.5">Shared across all campaigns · {p.negativeKeywords.length} terms</p>
+  <div class="ui-card overflow-hidden">
+    <div class="px-6 py-4 bg-muted border-b border-border">
+      <h2 class="font-bold text-foreground">Global Negative Keywords</h2>
+      <p class="text-xs text-muted-foreground mt-0.5">Shared across all campaigns · {p.negativeKeywords.length} terms</p>
     </div>
     <div class="px-6 py-4 flex flex-wrap gap-2">
       {p.negativeKeywords.map(kw => (

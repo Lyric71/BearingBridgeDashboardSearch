@@ -24,14 +24,14 @@ function panelHtml(p: Project, variant: 'full' | 'compact'): string {
   const cols = columns
     .map(
       col => `
-      <div class="rounded-2xl bg-gray-50 border border-gray-100 p-3 min-h-[120px] flex flex-col">
+      <div class="rounded-2xl bg-muted/50 border border-border p-3 min-h-[120px] flex flex-col">
         <div class="flex items-center justify-between px-1 mb-3">
-          <span class="text-xs font-semibold uppercase tracking-widest text-gray-500">${esc(col.label)}</span>
-          <span class="text-xs text-gray-400" data-kanban-count="${p.id}:${col.id}">0</span>
+          <span class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">${esc(col.label)}</span>
+          <span class="text-xs text-muted-foreground" data-kanban-count="${p.id}:${col.id}">0</span>
         </div>
         <div class="space-y-2 min-h-[48px]" data-kanban-zone="${p.id}:${col.id}"></div>
         <button type="button" data-kanban-add="${p.id}:${col.id}"
-          class="mt-2 text-xs text-gray-400 hover:text-gray-700 rounded-lg border border-dashed border-gray-200 hover:border-gray-400 py-1.5 transition-colors">+ Add task</button>
+          class="mt-2 text-xs text-muted-foreground hover:text-foreground rounded-lg border border-dashed border-border hover:border-ring py-1.5 transition-colors">+ Add task</button>
       </div>`,
     )
     .join('');
@@ -48,7 +48,7 @@ function panelHtml(p: Project, variant: 'full' | 'compact'): string {
           <div class="text-xs text-gray-400"><span data-kanban-done="${p.id}">0</span> / <span data-kanban-total="${p.id}">0</span> done</div>
         </div>
       </div>
-      <div class="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden mb-4">
+      <div class="h-1.5 w-full rounded-full bg-muted overflow-hidden mb-4">
         <div class="h-full rounded-full transition-all" style="width: 0%; background: ${p.color}" data-kanban-bar="${p.id}"></div>
       </div>
       <div class="grid sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
@@ -65,7 +65,7 @@ function panelHtml(p: Project, variant: 'full' | 'compact'): string {
 
   const compactHeader = `
       <div class="flex items-center gap-3 mb-4">
-        <div class="h-2 flex-1 rounded-full bg-gray-100 overflow-hidden">
+        <div class="h-2 flex-1 rounded-full bg-muted overflow-hidden">
           <div class="h-full rounded-full transition-all" style="width: 0%; background: ${p.color}" data-kanban-bar="${p.id}"></div>
         </div>
         <span class="text-sm font-bold tabular-nums" style="color: ${p.color}" data-kanban-pct="${p.id}">0%</span>
@@ -74,7 +74,7 @@ function panelHtml(p: Project, variant: 'full' | 'compact'): string {
 
   if (variant === 'full') {
     return `
-    <div class="rounded-2xl border border-gray-100 p-6 mb-6" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05); border-left: 4px solid ${p.color}">${fullHeader}
+    <div class="ui-card p-6 mb-6" style="border-left: 4px solid ${p.color}">${fullHeader}
     </div>
     <div class="grid md:grid-cols-3 gap-4">${cols}</div>`;
   }
@@ -91,7 +91,7 @@ export function mountProjectBoard(variant: 'full' | 'compact' = 'full', containe
   const projects = listProjects().filter(p => p.modules.kanban);
   if (projects.length === 0) {
     container.innerHTML =
-      '<div class="rounded-3xl border border-dashed border-gray-200 p-12 text-center text-gray-400">No projects have the Kanban module enabled. Enable it on the <a href="/projects" class="underline">Projects</a> page.</div>';
+      '<div class="ui-empty">No projects have the Kanban module enabled. Enable it on the <a href="/projects" class="underline">Projects</a> page.</div>';
     return;
   }
   container.innerHTML = projects

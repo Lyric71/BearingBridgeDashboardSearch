@@ -37,17 +37,17 @@ function deltaLine(label: string, before: number | null | undefined, after: numb
 
 function progressShell(label: string, n: number): string {
   return `
-    <div class="rounded-2xl border border-gray-100 p-4 mb-3" style="box-shadow: 5px 3px 8px rgba(0,0,0,0.04)">
+    <div class="ui-card p-4 mb-3">
       <div class="flex items-center justify-between mb-2">
-        <span class="text-xs font-semibold uppercase tracking-widest text-gray-500">Refreshing — ${esc(label)}</span>
-        <span data-prog-count class="text-xs tabular-nums text-gray-400">0/${n}</span>
+        <span class="ui-eyebrow">Refreshing — ${esc(label)}</span>
+        <span data-prog-count class="text-xs tabular-nums text-muted-foreground">0/${n}</span>
       </div>
-      <div class="h-1.5 rounded-full bg-gray-100 overflow-hidden mb-3">
+      <div class="h-1.5 rounded-full bg-muted overflow-hidden mb-3">
         <div data-prog-bar class="h-full rounded-full transition-all duration-300" style="width:0%; background: var(--bbg-blue)"></div>
       </div>
       <div data-prog-list class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1"></div>
-      <div data-prog-phase class="text-xs text-gray-400 mt-3"></div>
-      <div data-prog-result class="hidden mt-4 pt-4 border-t border-gray-100"></div>
+      <div data-prog-phase class="text-xs text-muted-foreground mt-3"></div>
+      <div data-prog-result class="hidden mt-4 pt-4 border-t border-border"></div>
     </div>`;
 }
 

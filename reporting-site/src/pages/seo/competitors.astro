@@ -98,9 +98,9 @@ const byProject = projects.map(p => ({ ...p, ...loadReports(p.id) }));
 ---
 <Layout title="Competitors" scoped module="seo">
   <div class="mb-8">
-    <a href="/" class="text-sm text-gray-400 hover:text-gray-600 mb-4 inline-block">&larr; Dashboard</a>
-    <h1 class="text-3xl font-bold mb-2" style="color: var(--bbg-red)">⚔️ Competitor Rankings</h1>
-    <p class="text-gray-500">SERP rank tracking vs top 10 competitors per keyword group · <span data-active-project-name>this project</span></p>
+    <a href="/" class="link-muted mb-4 inline-block">&larr; Dashboard</a>
+    <h1 class="font-heading text-3xl font-bold tracking-tight mb-2" style="color: var(--bbg-red)">⚔️ Competitor Rankings</h1>
+    <p class="text-muted-foreground">SERP rank tracking vs top 10 competitors per keyword group · <span data-active-project-name>this project</span></p>
   </div>
 
   {byProject.map(p => {
@@ -113,9 +113,9 @@ const byProject = projects.map(p => ({ ...p, ...loadReports(p.id) }));
   {headline.length > 0 ? (
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-10">
       {headline.map((s, i) => (
-        <div class="rounded-3xl p-6 border border-gray-100 text-center" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05)">
+        <div class="ui-card p-6 text-center">
           <div class="text-3xl font-bold mb-2 tabular-nums" data-kpi={HEADLINE_KEYS[i]} style={`color: ${HEADLINE_COLORS[i % HEADLINE_COLORS.length]}`}>{s.value}</div>
-          <div class="text-xs text-gray-400 uppercase tracking-wide">{s.label}</div>
+          <div class="text-xs text-muted-foreground uppercase tracking-wide">{s.label}</div>
         </div>
       ))}
     </div>
@@ -126,26 +126,26 @@ const byProject = projects.map(p => ({ ...p, ...loadReports(p.id) }));
         { label: 'Reports generated', value: groups.length, color: 'var(--bbg-gray-dark)' },
         { label: 'Keywords scored', value: groups.reduce((s, g) => s + g.stats.total, 0), color: 'var(--bbg-red)' },
       ].map(s => (
-        <div class="rounded-3xl p-5 border border-gray-100 text-center" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05)">
+        <div class="ui-card p-5 text-center">
           <div class="text-2xl font-bold mb-1" style={`color: ${s.color}`}>{s.value}</div>
-          <div class="text-xs text-gray-400 uppercase tracking-wide">{s.label}</div>
+          <div class="text-xs text-muted-foreground uppercase tracking-wide">{s.label}</div>
         </div>
       ))}
     </div>
   )}
 
   {groups.length === 0 ? (
-    <div class="rounded-3xl border border-dashed border-gray-200 p-12 text-center">
-      <div class="text-gray-400 mb-1">No competitor reports for <span class="font-semibold" style={`color: ${p.color}`}>{p.name}</span> yet.</div>
-      <div class="text-xs text-gray-400">Add <code>data/projects/{p.id}/competitors/*.md</code></div>
+    <div class="ui-empty">
+      <div class="mb-1">No competitor reports for <span class="font-semibold" style={`color: ${p.color}`}>{p.name}</span> yet.</div>
+      <div class="text-xs">Add <code>data/projects/{p.id}/competitors/*.md</code></div>
     </div>
   ) : (
     groups.map(g => (
-      <details class="mb-6 rounded-3xl border border-gray-100 overflow-hidden group" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05)" open={false} data-group data-cid={g.id}>
-        <summary class="flex items-center justify-between px-6 py-4 cursor-pointer select-none hover:bg-gray-50 transition-colors" style="list-style: none">
+      <details class="mb-6 ui-card overflow-hidden group" open={false} data-group data-cid={g.id}>
+        <summary class="flex items-center justify-between px-6 py-4 cursor-pointer select-none hover:bg-muted transition-colors" style="list-style: none">
           <div class="flex items-center gap-4">
             <span class="text-lg font-bold">{g.title}</span>
-            <span class="text-xs text-gray-400">{g.meta.split('|')[0]?.replace('Date:', '').trim()}</span>
+            <span class="text-xs text-muted-foreground">{g.meta.split('|')[0]?.replace('Date:', '').trim()}</span>
           </div>
           <div class="flex items-center gap-3">
             {g.stats.page1 > 0 && (
@@ -160,7 +160,7 @@ const byProject = projects.map(p => ({ ...p, ...loadReports(p.id) }));
             )}
             {canRefresh && !g.isOverview && (
               <button type="button" data-refresh data-cid={g.id} title="Re-run live SERP ranking for this cluster"
-                class="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:border-gray-400 hover:text-gray-900 transition-colors">
+                class="btn-outline text-xs py-1.5 font-semibold">
                 <svg data-refresh-icon class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                 Refresh
               </button>
@@ -171,14 +171,14 @@ const byProject = projects.map(p => ({ ...p, ...loadReports(p.id) }));
           </div>
         </summary>
 
-        <div class="border-t border-gray-100">
+        <div class="border-t border-border">
           <!-- Live refresh progress (filled by competitorsRefresh.ts) -->
           <div data-refresh-zone class="hidden px-6 pt-5"></div>
 
           <!-- Refresh history: before → after for every indicator -->
           {g.history.length > 0 && (
             <div data-history class="px-6 pt-5 pb-2">
-              <h3 class="text-xs font-semibold uppercase tracking-widest mb-3" style="color: var(--bbg-gray-muted)">Refresh History</h3>
+              <h3 class="ui-eyebrow mb-3">Refresh History</h3>
               <div class="space-y-2">
                 {g.history.map(h => {
                   const cb = h.before.cluster, ca = h.after.cluster;
@@ -189,7 +189,7 @@ const byProject = projects.map(p => ({ ...p, ...loadReports(p.id) }));
                     { k: 'Overall index', b: h.before.global?.index, a: h.after.global?.index, suf: '' },
                   ];
                   return (
-                    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-gray-100 px-3 py-2">
+                    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-border px-3 py-2">
                       <span class="text-xs font-semibold text-gray-500 tabular-nums">{h.ts}</span>
                       {metrics.map(m => {
                         const bn = Number(m.b), an = Number(m.a);
@@ -213,16 +213,16 @@ const byProject = projects.map(p => ({ ...p, ...loadReports(p.id) }));
 
           <!-- Rank table: horizontally scrollable -->
           <div class="px-6 pt-5 pb-2">
-            <h3 class="text-xs font-semibold uppercase tracking-widest mb-3" style="color: var(--bbg-gray-muted)">Keyword Rankings</h3>
-            <div class="overflow-x-auto rounded-xl border border-gray-100">
+            <h3 class="ui-eyebrow mb-3">Keyword Rankings</h3>
+            <div class="overflow-x-auto rounded-xl border border-border">
               <div class="rank-table prose max-w-none" set:html={g.rankHtml} />
             </div>
           </div>
 
           <!-- Visibility scores -->
           <div class="px-6 pb-6 pt-2">
-            <h3 class="text-xs font-semibold uppercase tracking-widest mb-3" style="color: var(--bbg-gray-muted)">Top 10 Competitors (auto-discovered)</h3>
-            <div class="overflow-x-auto rounded-xl border border-gray-100">
+            <h3 class="ui-eyebrow mb-3">Top 10 Competitors (auto-discovered)</h3>
+            <div class="overflow-x-auto rounded-xl border border-border">
               <div class="prose max-w-none" set:html={g.scoreHtml} />
             </div>
           </div>

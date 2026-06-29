@@ -30,16 +30,16 @@ const reports = files.map(f => ({
 ---
 
 {reports.length === 0 ? (
-  <div class="rounded-3xl border border-dashed border-gray-200 p-12 text-center text-gray-400">
+  <div class="ui-empty">
     No reports yet in <code>{dir}</code>
   </div>
 ) : (
   <div>
     {reports.map(r => (
-      <div class="mb-8 rounded-3xl border border-gray-100 overflow-hidden" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05)">
-        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between" style="background: var(--bbg-gray-light)">
+      <div class="mb-8 ui-card overflow-hidden">
+        <div class="px-6 py-4 border-b border-border flex items-center justify-between bg-muted">
           <h2 class="font-semibold capitalize">{r.name}</h2>
-          <span class="text-xs text-gray-400">{r.file}</span>
+          <span class="text-xs text-muted-foreground">{r.file}</span>
         </div>
         <div class="p-6 prose max-w-none overflow-x-auto" set:html={r.html} />
       </div>

@@ -51,13 +51,13 @@ function cardHtml(p: Project): string {
     ? enabledSections
         .map(
           s =>
-            `<a href="${s.href}" data-project-open="${p.id}" class="text-xs px-2 py-1 rounded-lg border border-gray-200 text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-colors">${s.label}</a>`,
+            `<a href="${s.href}" data-project-open="${p.id}" class="text-xs px-2 py-1 rounded-lg border border-border text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">${s.label}</a>`,
         )
         .join('')
-    : '<span class="text-xs text-gray-300">No modules enabled</span>';
+    : '<span class="text-xs text-muted-foreground/60">No modules enabled</span>';
 
   return `
-    <div class="rounded-3xl border border-gray-100 p-6 flex flex-col" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05); border-left: 4px solid ${p.color}">
+    <div class="ui-card p-6 flex flex-col" style="border-left: 4px solid ${p.color}">
       <div class="flex items-start justify-between gap-3 mb-2">
         <div class="min-w-0">
           <div class="flex items-center gap-2">
@@ -73,16 +73,16 @@ function cardHtml(p: Project): string {
         </div>
         <div class="flex gap-1 shrink-0">
           <button type="button" data-project-edit="${p.id}" title="Edit" aria-label="Edit project"
-            class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:text-gray-700 hover:border-gray-400 transition-colors">✎</button>
+            class="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">✎</button>
           <button type="button" data-project-delete="${p.id}" title="Delete" aria-label="Delete project"
-            class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:text-red-600 hover:border-red-300 transition-colors">✕</button>
+            class="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-red-600 hover:border-red-300 transition-colors">✕</button>
         </div>
       </div>
 
       <p class="text-sm text-gray-600 mb-3 line-clamp-2">${esc(p.targetCustomers || 'No description yet.')}</p>
 
       <div class="mb-4">
-        <div class="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1.5">Modules</div>
+        <div class="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">Modules</div>
         <div class="flex flex-wrap gap-2">${moduleBadges}</div>
       </div>
 
@@ -90,10 +90,10 @@ function cardHtml(p: Project): string {
         ${
           p.modules.kanban
             ? `<div class="flex items-center gap-2 mb-3">
-                 <div class="h-1.5 flex-1 rounded-full bg-gray-100 overflow-hidden">
+                 <div class="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
                    <div class="h-full rounded-full" style="width: ${pct}%; background: ${p.color}"></div>
                  </div>
-                 <span class="text-xs text-gray-400 tabular-nums">${done}/${total} GTM</span>
+                 <span class="text-xs text-muted-foreground tabular-nums">${done}/${total} GTM</span>
                </div>`
             : ''
         }
@@ -106,9 +106,9 @@ function cardHtml(p: Project): string {
 function field(label: string, name: string, value: string, placeholder = ''): string {
   return `
     <label class="block">
-      <span class="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">${label}</span>
+      <span class="block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">${label}</span>
       <input name="${name}" value="${esc(value)}" placeholder="${esc(placeholder)}"
-        class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-gray-900 transition-colors" />
+        class="ui-input" />
     </label>`;
 }
 
@@ -126,31 +126,31 @@ function openEditor(existing: Project | null, onDone: (savedId?: string) => void
   const overlay = document.createElement('div');
   overlay.className = 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30';
   overlay.innerHTML = `
-    <div class="w-full max-w-lg max-h-[90vh] overflow-auto rounded-3xl bg-white p-6 border border-gray-100" style="box-shadow: 10px 5px 30px rgba(0,0,0,0.15)">
+    <div class="w-full max-w-lg max-h-[90vh] overflow-auto ui-card p-6 shadow-xl">
       <h2 class="text-lg font-bold mb-4">${p ? 'Edit project' : 'New project'}</h2>
       <form id="project-form" class="space-y-3">
         ${field('Name', 'name', p?.name ?? '', 'Project name')}
         <label class="block">
-          <span class="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">Website <span class="text-red-500" title="Required">*</span></span>
+          <span class="block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Website <span class="text-red-500" title="Required">*</span></span>
           <input name="website" type="url" required value="${esc(p?.website ?? '')}" placeholder="https://example.com"
-            class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-gray-900 transition-colors" />
-          <span class="block text-xs text-gray-400 mt-1">Every project must be linked to a website.</span>
+            class="ui-input" />
+          <span class="block text-xs text-muted-foreground mt-1">Every project must be linked to a website.</span>
         </label>
         <div>
-          <span class="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">Modules</span>
+          <span class="block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Modules</span>
           <div class="flex flex-wrap gap-2">
             ${MODULES.map(m => {
               const on = p ? p.modules[m.key] : true; // new projects: all on by default
-              return `<label class="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 text-sm cursor-pointer hover:border-gray-400 has-[:checked]:border-gray-900 has-[:checked]:bg-gray-50 transition-colors">
-                <input type="checkbox" name="module-${m.key}" ${on ? 'checked' : ''} class="accent-gray-900" />
+              return `<label class="flex items-center gap-2 px-3 py-2 rounded-lg border border-border text-sm cursor-pointer hover:border-ring has-[:checked]:border-foreground has-[:checked]:bg-muted transition-colors">
+                <input type="checkbox" name="module-${m.key}" ${on ? 'checked' : ''} class="accent-foreground" />
                 ${m.label}
               </label>`;
             }).join('')}
           </div>
-          <p class="text-xs text-gray-400 mt-1">Unchecked modules won't appear for this project.</p>
+          <p class="text-xs text-muted-foreground mt-1">Unchecked modules won't appear for this project.</p>
         </div>
         <div>
-          <span class="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">Color</span>
+          <span class="block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Color</span>
           <div class="flex flex-wrap gap-2" data-color-picker>
             ${PALETTE.map(
               c => `<button type="button" data-color="${c.value}" title="${c.label}" aria-label="${c.label}"
@@ -173,8 +173,8 @@ function openEditor(existing: Project | null, onDone: (savedId?: string) => void
         </div>
         <p id="project-form-error" class="text-sm text-red-500 hidden">Name is required.</p>
         <div class="flex justify-end gap-2 pt-2">
-          <button type="button" data-cancel class="px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:border-gray-400">Cancel</button>
-          <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background: var(--bbg-gray-dark)">${p ? 'Save' : 'Create'}</button>
+          <button type="button" data-cancel class="btn-outline">Cancel</button>
+          <button type="submit" class="btn-primary">${p ? 'Save' : 'Create'}</button>
         </div>
       </form>
     </div>`;

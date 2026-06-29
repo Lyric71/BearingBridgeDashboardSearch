@@ -28,7 +28,7 @@ const current = Astro.url.pathname;
 </head>
 <body class="min-h-screen flex flex-col">
   <!-- Header -->
-  <header class="border-b border-gray-200">
+  <header class="border-b border-border">
     <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
       <a href="/">
         <img
@@ -42,12 +42,11 @@ const current = Astro.url.pathname;
           <a
             href={item.href}
             data-nav-module={item.module}
-            class={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+            class={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
               current === item.href
-                ? 'text-white'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
             }`}
-            style={current === item.href ? 'background: var(--bbg-gray-dark)' : ''}
           >
             {item.label}
           </a>
@@ -56,22 +55,22 @@ const current = Astro.url.pathname;
     </div>
 
     <!-- Project context bar: the project is the top-level entry -->
-    <div class="border-t border-gray-100" style="background: #fafafa">
+    <div class="border-t border-border bg-muted/40">
       <div class="max-w-7xl mx-auto px-6 py-2.5 flex items-center gap-3">
-        <span class="text-xs font-semibold uppercase tracking-widest" style="color: var(--bbg-gray-muted)">Project</span>
+        <span class="ui-eyebrow">Project</span>
         <div class="relative">
           <span id="project-dot" class="absolute left-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full" style="background: var(--bbg-gray-dark)"></span>
           <select
             id="project-select"
-            class="appearance-none text-sm font-semibold rounded-lg border border-gray-200 bg-white pl-8 pr-9 py-1.5 cursor-pointer hover:border-gray-400 focus:outline-none focus:border-gray-500"
+            class="appearance-none text-sm font-semibold rounded-lg border border-input bg-background pl-8 pr-9 py-1.5 cursor-pointer hover:border-ring focus:outline-none focus:border-ring"
           >
             {projects.map(p => (
               <option value={p.id} data-color={p.color}>{p.name}</option>
             ))}
           </select>
-          <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
         </div>
-        <a href="/projects" class="text-xs text-gray-400 hover:text-gray-600">Manage projects &rarr;</a>
+        <a href="/projects" class="link-muted text-xs">Manage projects &rarr;</a>
       </div>
     </div>
   </header>
@@ -82,7 +81,7 @@ const current = Astro.url.pathname;
   </main>
 
   <!-- Footer -->
-  <footer class="border-t border-gray-200 mt-auto">
+  <footer class="border-t border-border mt-auto">
     <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center text-xs" style="color: var(--bbg-gray-muted)">
       <span>www.bearingbridge.com</span>
       <span>Updated {new Date().toLocaleDateString('en-CA')}</span>
@@ -119,7 +118,7 @@ const current = Astro.url.pathname;
         fallbackEl = document.createElement('div');
         main.appendChild(fallbackEl);
       }
-      fallbackEl.className = 'rounded-3xl border border-dashed border-gray-200 p-12 text-center';
+      fallbackEl.className = 'ui-empty';
       fallbackEl.innerHTML = html;
     }
     function hideFallback() { fallbackEl?.classList.add('hidden'); }

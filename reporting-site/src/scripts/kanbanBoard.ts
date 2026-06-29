@@ -24,7 +24,7 @@ function iconButton(symbol: string, label: string): HTMLButtonElement {
   b.title = label;
   b.setAttribute('aria-label', label);
   b.className =
-    'w-5 h-5 flex items-center justify-center rounded text-xs text-gray-400 hover:text-gray-700 hover:bg-gray-100';
+    'w-5 h-5 flex items-center justify-center rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted';
   return b;
 }
 
@@ -33,7 +33,7 @@ function startEdit(card: HTMLElement, pid: string, task: Task) {
   if (!titleEl || card.querySelector('input')) return;
   const input = document.createElement('input');
   input.value = task.title;
-  input.className = 'w-full border border-gray-300 rounded px-1.5 py-1 text-sm focus:outline-none focus:border-gray-500';
+  input.className = 'w-full border border-input bg-background rounded px-1.5 py-1 text-sm focus:outline-none focus:border-ring';
   card.draggable = false;
   titleEl.replaceWith(input);
   input.focus();
@@ -56,7 +56,7 @@ function startEdit(card: HTMLElement, pid: string, task: Task) {
 function cardEl(pid: string, task: Task): HTMLElement {
   const card = document.createElement('div');
   card.className =
-    'kanban-card group/card relative bg-white rounded-xl border border-gray-100 pl-3 pr-12 py-2.5 text-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow';
+    'kanban-card group/card relative bg-card rounded-xl ring-1 ring-foreground/10 pl-3 pr-12 py-2.5 text-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow';
   card.draggable = true;
   card.dataset.kanbanCard = task.id;
   card.style.borderLeft = `3px solid ${colorOf(pid)}`;
@@ -121,7 +121,7 @@ function wireAdd() {
       if (!zone || zone.querySelector('.kanban-new')) return;
       const input = document.createElement('input');
       input.className =
-        'kanban-new w-full bg-white rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-gray-500';
+        'kanban-new w-full bg-background rounded-xl border border-input px-3 py-2 text-sm focus:outline-none focus:border-ring';
       input.placeholder = 'New task…';
       zone.appendChild(input);
       input.focus();
@@ -204,7 +204,7 @@ function ensureMenu(): HTMLElement {
   if (menuEl) return menuEl;
   menuEl = document.createElement('div');
   menuEl.className =
-    'kanban-menu fixed z-50 hidden min-w-[190px] bg-white rounded-xl border border-gray-200 shadow-lg py-1 text-sm';
+    'kanban-menu fixed z-50 hidden min-w-[190px] bg-popover text-popover-foreground rounded-xl border border-border shadow-lg py-1 text-sm';
   menuEl.addEventListener('click', e => e.stopPropagation());
   document.body.appendChild(menuEl);
   document.addEventListener('click', hideMenu);
@@ -219,14 +219,14 @@ function menuItem(label: string, onClick?: () => void, disabled = false): HTMLBu
   b.type = 'button';
   b.textContent = label;
   b.className =
-    'w-full text-left px-3 py-1.5 flex items-center gap-2 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-default';
+    'w-full text-left px-3 py-1.5 flex items-center gap-2 hover:bg-muted disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-default';
   if (disabled) b.disabled = true;
   else if (onClick) b.addEventListener('click', onClick);
   return b;
 }
 function divider(): HTMLElement {
   const d = document.createElement('div');
-  d.className = 'my-1 border-t border-gray-100';
+  d.className = 'my-1 border-t border-border';
   return d;
 }
 
@@ -257,11 +257,11 @@ function openMenu(x: number, y: number, ctx: MenuCtx) {
   const trigger = menuItem('⧉ Duplicate to project  ▸');
   const sub = document.createElement('div');
   sub.className =
-    'submenu absolute left-full -top-1 ml-1 min-w-[170px] bg-white rounded-xl border border-gray-200 shadow-lg py-1 hidden max-h-72 overflow-auto';
+    'submenu absolute left-full -top-1 ml-1 min-w-[170px] bg-popover text-popover-foreground rounded-xl border border-border shadow-lg py-1 hidden max-h-72 overflow-auto';
   projects().filter(p => p.id !== ctx.pid).forEach(p => {
     const it = document.createElement('button');
     it.type = 'button';
-    it.className = 'w-full text-left px-3 py-1.5 flex items-center gap-2 hover:bg-gray-100';
+    it.className = 'w-full text-left px-3 py-1.5 flex items-center gap-2 hover:bg-muted';
     const dot = document.createElement('span');
     dot.className = 'w-2 h-2 rounded-full shrink-0';
     dot.style.background = p.color;
