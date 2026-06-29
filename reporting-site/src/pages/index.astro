@@ -1,6 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import gtm from '../data/gtm.json';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
 
 // Curated SEO/Ads headline metrics — only Beyond Border Group has analytics today.
 const curatedStats: Record<string, { metric: string; value: string; note: string; color: string }[]> = {
@@ -39,40 +41,104 @@ const sem = [
   { slug: '/sem/ads', label: 'Google Ads', color: 'var(--bbg-orange)', icon: '📢', description: 'RSA ad copy, campaign structure and keyword recommendations.' },
   { slug: '/sem/report', label: 'Click Report', color: 'var(--bbg-red)', icon: '📊', description: 'Keyword clicks, impressions and cost per click by campaign.' },
 ];
+
+// Soft brand-tinted chip background for module icons (plain HTML span — string style).
+const tint = (color: string) => `background-color: color-mix(in srgb, ${color} 14%, transparent)`;
+const sectionLabel = 'text-xs font-semibold uppercase tracking-widest text-muted-foreground';
 ---
 <Layout title="Dashboard">
+  <!-- Page heading -->
   <div class="mb-10">
-    <h1 class="text-3xl font-bold mb-2"><span data-active-project-name>Project</span> · SEO &amp; Ads Intelligence</h1>
-    <p class="text-gray-500">Select a project above — every view below is scoped to it.</p>
+    <h1 class="font-heading text-3xl font-bold tracking-tight mb-1">
+      <span data-active-project-name>Project</span>
+      <span class="text-muted-foreground font-normal">· SEO &amp; Ads Intelligence</span>
+    </h1>
+    <p class="text-muted-foreground">Select a project above — every view below is scoped to it.</p>
   </div>
 
-  <!-- GTM Kanban — selected project only -->
-  <section class="mb-10" data-nav-module="kanban">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-xs font-semibold uppercase tracking-widest" style="color: var(--bbg-gray-muted)">GTM Board · <span data-active-project-name>project</span></h2>
-      <a href="/gtm" class="text-xs font-medium hover:underline" style="color: var(--bbg-blue)">Full board &rarr;</a>
-    </div>
-    <!-- Compact board rendered client-side from the project store (includes created projects). -->
-    <div id="project-board-compact"></div>
+  <!-- Snapshot: KPI stat cards, scoped to the selected project -->
+  <section class="mb-12">
+    <h2 class={`${sectionLabel} mb-4`}>Snapshot · <span data-active-project-name>project</span></h2>
+    {statusByProject.map(p => (
+      <div data-project-panel={p.id} class="hidden">
+        {p.curated ? (
+          <div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+            {p.curated.map(s => (
+              <Card size="sm" className="justify-between">
+                <CardHeader>
+                  <CardDescription className="text-[11px] font-medium uppercase tracking-wider">{s.metric}</CardDescription>
+                  <CardTitle className="text-2xl font-bold tabular-nums" style={{ color: s.color }}>{s.value}</CardTitle>
+                </CardHeader>
+                <CardContent className="text-xs text-muted-foreground leading-snug">{s.note}</CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <Card size="sm" className="justify-between">
+              <CardHeader>
+                <CardDescription className="text-[11px] font-medium uppercase tracking-wider">GTM tasks done</CardDescription>
+                <CardTitle className="text-2xl font-bold tabular-nums" style={{ color: p.color }}>{p.tasksDone} / {p.tasksTotal}</CardTitle>
+              </CardHeader>
+              <CardContent className="text-xs text-muted-foreground leading-snug">Go-to-market build-out progress</CardContent>
+            </Card>
+            <Card size="sm" className="justify-between">
+              <CardHeader>
+                <CardDescription className="text-[11px] font-medium uppercase tracking-wider">Owner</CardDescription>
+                <CardTitle className="text-2xl font-bold">{p.owner}</CardTitle>
+              </CardHeader>
+              <CardContent className="text-xs text-muted-foreground leading-snug">Responsible for execution</CardContent>
+            </Card>
+            <Card size="sm" className="justify-between">
+              <CardHeader>
+                <CardDescription className="text-[11px] font-medium uppercase tracking-wider">Channels</CardDescription>
+                <CardTitle className="text-base font-semibold leading-snug" style={{ color: p.color }}>
+                  SEO · {p.channels.seo}<br />SEM · {p.channels.sem}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-xs text-muted-foreground leading-snug">Search &amp; paid search</CardContent>
+            </Card>
+            <Card size="sm" className="justify-between">
+              <CardHeader>
+                <CardDescription className="text-[11px] font-medium uppercase tracking-wider">Analytics</CardDescription>
+                <div class="pt-1"><Badge variant="outline">Not connected</Badge></div>
+              </CardHeader>
+              <CardContent className="text-xs text-muted-foreground leading-snug">No keyword / rank / click data yet for this project</CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
+    ))}
   </section>
 
   <!-- SEO -->
-  <section class="mb-10" data-nav-module="seo">
-    <h2 class="text-xs font-semibold uppercase tracking-widest mb-4" style="color: var(--bbg-gray-muted)">SEO</h2>
-    <div class="grid grid-cols-2 gap-4 lg:grid-cols-3">
+  <section class="mb-12" data-nav-module="seo">
+    <h2 class={`${sectionLabel} mb-4`}>SEO</h2>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {seo.map(t => (
         t.comingSoon ? (
-          <div class="relative block rounded-3xl p-6 border border-dashed border-gray-200 opacity-70 cursor-default" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05)">
-            <span class="absolute top-4 right-4 text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full text-gray-400 border border-gray-200">Coming soon</span>
-            <div class="text-2xl mb-3">{t.icon}</div>
-            <div class="font-bold text-base mb-1" style={`color: ${t.color}`}>{t.label}</div>
-            <div class="text-sm text-gray-500 leading-relaxed">{t.description}</div>
-          </div>
+          <Card className="h-full border border-dashed border-border opacity-70 ring-0">
+            <CardHeader>
+              <div class="flex items-center justify-between">
+                <span class="flex h-11 w-11 items-center justify-center rounded-xl text-xl grayscale" style={tint(t.color)}>{t.icon}</span>
+                <Badge variant="outline">Coming soon</Badge>
+              </div>
+              <CardTitle className="font-bold text-base mt-2">{t.label}</CardTitle>
+              <CardDescription className="leading-relaxed">{t.description}</CardDescription>
+            </CardHeader>
+          </Card>
         ) : (
-          <a href={t.slug} class="block rounded-3xl p-6 border border-gray-100 hover:shadow-lg transition-all hover:-translate-y-0.5" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05)">
-            <div class="text-2xl mb-3">{t.icon}</div>
-            <div class="font-bold text-base mb-1" style={`color: ${t.color}`}>{t.label}</div>
-            <div class="text-sm text-gray-500 leading-relaxed">{t.description}</div>
+          <a href={t.slug} class="group block">
+            <Card className="h-full transition-all duration-200 group-hover:-translate-y-1 group-hover:ring-foreground/20 group-hover:shadow-lg">
+              <CardHeader>
+                <div class="flex items-center justify-between">
+                  <span class="flex h-11 w-11 items-center justify-center rounded-xl text-xl" style={tint(t.color)}>{t.icon}</span>
+                  <span class="text-muted-foreground transition-transform group-hover:translate-x-1" aria-hidden="true">→</span>
+                </div>
+                <CardTitle className="font-bold text-base mt-2" style={{ color: t.color }}>{t.label}</CardTitle>
+                <CardDescription className="leading-relaxed">{t.description}</CardDescription>
+              </CardHeader>
+            </Card>
           </a>
         )
       ))}
@@ -80,46 +146,37 @@ const sem = [
   </section>
 
   <!-- SEM / Google Ads -->
-  <section class="mb-10" data-nav-module="googleAds">
-    <h2 class="text-xs font-semibold uppercase tracking-widest mb-4" style="color: var(--bbg-gray-muted)">SEM / Google Ads</h2>
-    <div class="grid grid-cols-2 gap-4 lg:grid-cols-3">
+  <section class="mb-12" data-nav-module="googleAds">
+    <h2 class={`${sectionLabel} mb-4`}>SEM / Google Ads</h2>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {sem.map(t => (
-        <a href={t.slug} class="block rounded-3xl p-6 border border-gray-100 hover:shadow-lg transition-all hover:-translate-y-0.5" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05)">
-          <div class="text-2xl mb-3">{t.icon}</div>
-          <div class="font-bold text-base mb-1" style={`color: ${t.color}`}>{t.label}</div>
-          <div class="text-sm text-gray-500 leading-relaxed">{t.description}</div>
+        <a href={t.slug} class="group block">
+          <Card className="h-full transition-all duration-200 group-hover:-translate-y-1 group-hover:ring-foreground/20 group-hover:shadow-lg">
+            <CardHeader>
+              <div class="flex items-center justify-between">
+                <span class="flex h-11 w-11 items-center justify-center rounded-xl text-xl" style={tint(t.color)}>{t.icon}</span>
+                <span class="text-muted-foreground transition-transform group-hover:translate-x-1" aria-hidden="true">→</span>
+              </div>
+              <CardTitle className="font-bold text-base mt-2" style={{ color: t.color }}>{t.label}</CardTitle>
+              <CardDescription className="leading-relaxed">{t.description}</CardDescription>
+            </CardHeader>
+          </Card>
         </a>
       ))}
     </div>
   </section>
 
-  <!-- Current Status — scoped to the selected project -->
-  <section>
-    <h2 class="text-xs font-semibold uppercase tracking-widest mb-4" style="color: var(--bbg-gray-muted)">Current Status · <span data-active-project-name>project</span></h2>
-    {statusByProject.map(p => (
-      <div data-project-panel={p.id} class="hidden rounded-3xl border border-gray-100 overflow-hidden" style="box-shadow: 10px 5px 10px rgba(0,0,0,0.05)">
-        <table>
-          <thead>
-            <tr><th>Metric</th><th>Value</th><th>Note</th></tr>
-          </thead>
-          <tbody>
-            {p.curated ? (
-              p.curated.map(s => (
-                <tr><td class="font-medium">{s.metric}</td><td class="font-bold" style={`color: ${s.color}`}>{s.value}</td><td class="text-gray-400">{s.note}</td></tr>
-              ))
-            ) : (
-              <>
-                <tr><td class="font-medium">GTM tasks done</td><td class="font-bold" style={`color: ${p.color}`}>{p.tasksDone} / {p.tasksTotal}</td><td class="text-gray-400">Go-to-market build-out progress</td></tr>
-                <tr><td class="font-medium">Owner</td><td class="font-bold">{p.owner}</td><td class="text-gray-400">Responsible for execution</td></tr>
-                <tr><td class="font-medium">SEO</td><td class="font-bold" style={`color: ${p.color}`}>{p.channels.seo}</td><td class="text-gray-400">Search channel</td></tr>
-                <tr><td class="font-medium">SEM</td><td class="font-bold" style={`color: ${p.color}`}>{p.channels.sem}</td><td class="text-gray-400">Paid search channel</td></tr>
-                <tr><td class="font-medium">Analytics</td><td class="font-bold text-gray-400">Not connected</td><td class="text-gray-400">No keyword / rank / click data yet for this project</td></tr>
-              </>
-            )}
-          </tbody>
-        </table>
-      </div>
-    ))}
+  <!-- GTM Kanban — selected project only -->
+  <section data-nav-module="kanban">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class={sectionLabel}>GTM Board · <span data-active-project-name>project</span></h2>
+      <a href="/gtm" class="text-xs font-medium hover:underline" style="color: var(--bbg-blue)">Full board &rarr;</a>
+    </div>
+    <Card className="ring-0 border border-border">
+      <CardContent className="px-3 py-1">
+        <div id="project-board-compact"></div>
+      </CardContent>
+    </Card>
   </section>
 </Layout>
 
