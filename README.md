@@ -2,6 +2,19 @@
 
 Manual analysis and content generation workflow for beyondbordergroup.com (EN + FR).
 
+## Tech Stack
+
+The reporting site (`reporting-site/`) is a statically-built Astro app.
+
+| Component          | Version  | Role                                              |
+| :----------------- | :------- | :------------------------------------------------ |
+| Node.js            | ≥ 22.12  | Runtime                                            |
+| Astro              | 7.0.3    | Static site framework (SSG; dev-only SSE route)   |
+| Tailwind CSS       | 4.3.1    | Styling (via the `@tailwindcss/vite` 4.3.1 plugin)|
+| marked             | 18.0.5   | Markdown → HTML rendering for reports             |
+| sharp              | 0.35.2   | Image optimization (`img:batch` script)           |
+| TypeScript         | strict   | Typed scripts and server route                    |
+
 ## Folder Structure
 
 ```

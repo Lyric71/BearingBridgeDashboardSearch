@@ -2,6 +2,7 @@
 import { defineConfig } from 'astro/config';
 
 import tailwindcss from '@tailwindcss/vite';
+import react from '@astrojs/react';
 
 // Dev-only SSE endpoint (src/server/refresh.ts) for re-running SERP rankings.
 // It's `prerender = false`, so keeping it under src/pages/ would force the
@@ -24,7 +25,7 @@ const devRefreshRoute = {
 
 // https://astro.build/config
 export default defineConfig({
-  integrations: [devRefreshRoute],
+  integrations: [react(), devRefreshRoute],
   server: {
     host: "127.0.0.1",
   },
