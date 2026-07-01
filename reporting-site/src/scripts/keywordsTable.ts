@@ -19,6 +19,25 @@ import {
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
+// Per-project, per-cluster blog-article status counts (SSR-embedded snapshot).
+// Rendered as small pills on each cluster header so coverage is visible here.
+interface ClusterCounts { proposed: number; accepted: number; published: number }
+let articleSummary: Record<string, Record<string, ClusterCounts>> = {};
+function loadArticleSummary() {
+  try { articleSummary = JSON.parse(document.getElementById('cp-article-summary')?.textContent || '{}'); }
+  catch { articleSummary = {}; }
+}
+function articleBadge(projectId: string, cluster: string): string {
+  const c = articleSummary[projectId]?.[cluster];
+  if (!c || (c.proposed + c.accepted + c.published) === 0) return '';
+  const pill = (n: number, bg: string, fg: string, title: string) =>
+    n > 0 ? `<span title="${title}" class="text-[10px] px-1.5 py-0.5 rounded ${fg}" style="background:${bg}">${n}</span>` : '';
+  return `<span class="ml-2 inline-flex items-center gap-1 align-middle font-normal" title="Blog articles for this cluster">📝
+    ${pill(c.published, '#16a34a', 'text-white', 'Published')}
+    ${pill(c.accepted, 'var(--bbg-blue)', 'text-white', 'Accepted')}
+    ${pill(c.proposed, 'var(--bbg-gray-muted)', 'text-white', 'Proposed')}</span>`;
+}
+
 type SortKey = 'keyword' | 'language' | 'intent' | 'priority';
 interface SortState { key: SortKey; dir: 1 | -1; }
 
@@ -94,12 +113,12 @@ function pill(text: string, color: string): string {
 
 // Full-width divider row that introduces each cluster group. Clicking it toggles
 // the group's rows via the collapsed-clusters set in view state.
-function groupHeader(cluster: string, n: number, collapsed: boolean): string {
+function groupHeader(projectId: string, cluster: string, n: number, collapsed: boolean): string {
   return `
     <tr class="cluster-row cursor-pointer select-none hover:bg-muted/70" data-cluster-toggle="${esc(cluster)}">
       <td colspan="5" class="bg-muted/50 font-semibold text-sm text-foreground py-2 px-3 border-t border-border">
         <span class="inline-block w-3 text-[10px] text-muted-foreground transition-transform">${collapsed ? '▶' : '▼'}</span>
-        ${esc(cluster)} <span class="text-muted-foreground font-normal tabular-nums">(${n})</span>
+        ${esc(cluster)} <span class="text-muted-foreground font-normal tabular-nums">(${n})</span>${articleBadge(projectId, cluster)}
       </td>
     </tr>`;
 }
@@ -179,7 +198,7 @@ function renderPanel(panel: HTMLElement) {
       });
       const isCollapsed = !forceExpand && state.collapsed.has(cluster);
       const rowsHtml = isCollapsed ? '' : items.map(rowHtml).join('');
-      return groupHeader(cluster, items.length, isCollapsed) + rowsHtml;
+      return groupHeader(id, cluster, items.length, isCollapsed) + rowsHtml;
     })
     .join('');
 
@@ -379,6 +398,7 @@ function wirePanel(panel: HTMLElement) {
 }
 
 export function mountKeywordTables() {
+  loadArticleSummary();
   const panels = Array.from(document.querySelectorAll<HTMLElement>('[data-kw-panel]'));
   panels.forEach(wirePanel);
   // If a background write fails, the store resyncs — re-render every panel.

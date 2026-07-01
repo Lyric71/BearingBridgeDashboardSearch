@@ -3,8 +3,24 @@ import Layout from '../../layouts/Layout.astro';
 import SeoNav from '../../components/SeoNav.astro';
 import { listProjects } from '../../lib/projects-db';
 import { listKeywordsGrouped } from '../../lib/keywords-db';
+import { listBlogArticles } from '../../lib/blog-articles-db';
 
-const [projects, keywordsByProject] = await Promise.all([listProjects(), listKeywordsGrouped()]);
+const [projects, keywordsByProject, articles] = await Promise.all([
+  listProjects(), listKeywordsGrouped(), listBlogArticles(),
+]);
+
+// Per-project, per-cluster blog-article status counts, surfaced on each cluster
+// header so you can see coverage at a glance. published wins over accepted.
+type ClusterCounts = { proposed: number; accepted: number; published: number };
+const articleSummary: Record<string, Record<string, ClusterCounts>> = {};
+for (const a of articles) {
+  if (!a.project_id || !a.cluster) continue;
+  const proj = (articleSummary[a.project_id] ??= {});
+  const c = (proj[a.cluster] ??= { proposed: 0, accepted: 0, published: 0 });
+  if (a.published) c.published++;
+  else if (a.status === 'accepted') c.accepted++;
+  else c.proposed++;
+}
 
 // Rows are grouped by cluster (see scripts/keywordsTable.ts); these headers sort
 // within each cluster group. Priority sorts by ordinal rank; the rest A→Z.
@@ -25,6 +41,8 @@ const COLUMNS = [
 
   <!-- Server-rendered keywords for the client store to hydrate from. -->
   <script id="keywords-data" type="application/json" is:inline set:html={JSON.stringify(keywordsByProject)}></script>
+  <!-- Per-cluster blog-article status counts (keywordsTable renders the pills). -->
+  <script id="cp-article-summary" type="application/json" is:inline set:html={JSON.stringify(articleSummary)}></script>
 
   {projects.map(p => (
     <div data-project-panel={p.id} class="hidden">
