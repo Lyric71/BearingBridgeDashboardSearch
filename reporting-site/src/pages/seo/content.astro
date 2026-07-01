@@ -1,5 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import SeoNav from '../../components/SeoNav.astro';
 import ReportList from '../../components/ReportList.astro';
 ---
 <Layout title="SEO Content">
@@ -7,6 +8,7 @@ import ReportList from '../../components/ReportList.astro';
     <a href="/" class="link-muted mb-4 inline-block">&larr; Dashboard</a>
     <h1 class="font-heading text-3xl font-bold tracking-tight mb-2" style="color: var(--bbg-purple)">✍️ SEO Content</h1>
     <p class="text-muted-foreground">Content briefs, page drafts, and on-page recommendations.</p>
+    <SeoNav current="content" />
   </div>
   <ReportList dir="reports/content" />
 </Layout>

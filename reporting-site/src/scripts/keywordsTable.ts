@@ -7,7 +7,6 @@ import {
   updateKeyword,
   removeKeyword,
   duplicateKeyword,
-  resetKeywords,
   setKeywordResyncHandler,
   LANGUAGES,
   INTENTS,
@@ -20,16 +19,18 @@ import {
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-type SortKey = 'keyword' | 'language' | 'intent' | 'cluster' | 'priority';
+type SortKey = 'keyword' | 'language' | 'intent' | 'priority';
 interface SortState { key: SortKey; dir: 1 | -1; }
 
 interface Filters { language: string; intent: string; priority: string; }
 
-// Per-panel view state (sort + search + filters), keyed by project id.
-const viewState = new Map<string, { sort: SortState; query: string; filters: Filters }>();
+// Per-panel view state (sort + search + filters + collapsed clusters), keyed by
+// project id. `collapsed` holds the cluster names whose rows are hidden; clusters
+// start collapsed by default (seeded on first render — see `collapseInit`).
+const viewState = new Map<string, { sort: SortState; query: string; filters: Filters; collapsed: Set<string>; collapseInit: boolean }>();
 function vs(id: string) {
   if (!viewState.has(id))
-    viewState.set(id, { sort: { key: 'priority', dir: 1 }, query: '', filters: { language: '', intent: '', priority: '' } });
+    viewState.set(id, { sort: { key: 'priority', dir: 1 }, query: '', filters: { language: 'EN', intent: '', priority: '' }, collapsed: new Set(), collapseInit: false });
   return viewState.get(id)!;
 }
 
@@ -55,8 +56,7 @@ function compare(a: Keyword, b: Keyword, key: SortKey): number {
 
 // Populate a filter <select> with the distinct values present in the data,
 // preserving the current selection. Priority is ordered by rank; others A→Z.
-function fillSelect(sel: HTMLSelectElement, values: string[], byRank: boolean) {
-  const current = sel.value;
+function fillSelect(sel: HTMLSelectElement, values: string[], byRank: boolean, desired: string) {
   const sorted = byRank
     ? values.slice().sort((a, b) => (PRIORITY_RANK[a] ?? 99) - (PRIORITY_RANK[b] ?? 99))
     : values.slice().sort((a, b) => a.localeCompare(b));
@@ -69,8 +69,8 @@ function fillSelect(sel: HTMLSelectElement, values: string[], byRank: boolean) {
     opt.text = v;
     sel.appendChild(opt);
   }
-  // Restore selection if it still exists; otherwise fall back to "All".
-  sel.value = sorted.includes(current) ? current : '';
+  // Reflect the state's selection if it's still available; otherwise "All".
+  sel.value = sorted.includes(desired) ? desired : '';
 }
 
 function syncFilterOptions(panel: HTMLElement, all: Keyword[], filters: Filters) {
@@ -83,13 +83,25 @@ function syncFilterOptions(panel: HTMLElement, all: Keyword[], filters: Filters)
     const sel = panel.querySelector<HTMLSelectElement>(`[data-kw-filter="${key}"]`);
     if (!sel) continue;
     const values = Array.from(new Set(all.map(k => k[key]).filter(Boolean)));
-    fillSelect(sel, values, byRank);
-    filters[key] = sel.value; // keep state in sync if a value disappeared
+    fillSelect(sel, values, byRank, filters[key]); // state drives the selection
+    filters[key] = sel.value; // fall back to "All" if that value disappeared
   }
 }
 
 function pill(text: string, color: string): string {
   return `<span class="inline-block text-xs font-semibold px-2 py-0.5 rounded-full text-white" style="background: ${color}">${esc(text)}</span>`;
+}
+
+// Full-width divider row that introduces each cluster group. Clicking it toggles
+// the group's rows via the collapsed-clusters set in view state.
+function groupHeader(cluster: string, n: number, collapsed: boolean): string {
+  return `
+    <tr class="cluster-row cursor-pointer select-none hover:bg-muted/70" data-cluster-toggle="${esc(cluster)}">
+      <td colspan="5" class="bg-muted/50 font-semibold text-sm text-foreground py-2 px-3 border-t border-border">
+        <span class="inline-block w-3 text-[10px] text-muted-foreground transition-transform">${collapsed ? '▶' : '▼'}</span>
+        ${esc(cluster)} <span class="text-muted-foreground font-normal tabular-nums">(${n})</span>
+      </td>
+    </tr>`;
 }
 
 function rowHtml(k: Keyword): string {
@@ -98,7 +110,6 @@ function rowHtml(k: Keyword): string {
       <td class="font-medium">${esc(k.keyword)}</td>
       <td><span class="text-xs font-semibold px-2 py-0.5 rounded border border-border text-muted-foreground">${esc(k.language)}</span></td>
       <td>${pill(k.intent, intentColor[k.intent] ?? 'var(--bbg-gray-muted)')}</td>
-      <td class="text-muted-foreground">${esc(k.cluster)}</td>
       <td>${pill(k.priority, priorityColor[k.priority] ?? 'var(--bbg-gray-muted)')}</td>
       <td>
         <div class="flex gap-1 justify-end">
@@ -123,6 +134,12 @@ function renderPanel(panel: HTMLElement) {
   const all = listKeywords(id);
   const total = all.length;
 
+  // Collapse every cluster on the first render for this panel (default state).
+  if (!state.collapseInit && all.length) {
+    for (const k of all) state.collapsed.add(k.cluster || 'Uncategorized');
+    state.collapseInit = true;
+  }
+
   // Refresh dropdown options from current data (preserving selections), then filter.
   syncFilterOptions(panel, all, state.filters);
   const f = state.filters;
@@ -136,12 +153,35 @@ function renderPanel(panel: HTMLElement) {
   const q = state.query.trim().toLowerCase();
   if (q) rows = rows.filter(k => k.keyword.toLowerCase().includes(q) || k.cluster.toLowerCase().includes(q));
 
-  rows.sort((a, b) => {
-    const c = compare(a, b, state.sort.key);
-    return (c !== 0 ? c : a.keyword.localeCompare(b.keyword)) * state.sort.dir;
-  });
+  // Group rows by cluster. Clusters are ordered by their strongest (lowest-rank)
+  // priority, then alphabetically; rows within a cluster follow the active sort.
+  const groups = new Map<string, Keyword[]>();
+  for (const k of rows) {
+    const key = k.cluster || 'Uncategorized';
+    let arr = groups.get(key);
+    if (!arr) { arr = []; groups.set(key, arr); }
+    arr.push(k);
+  }
+  const rank = (c: string) => Math.min(...groups.get(c)!.map(k => PRIORITY_RANK[k.priority] ?? 99));
+  const clusterOrder = Array.from(groups.keys()).sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
 
-  body.innerHTML = rows.map(rowHtml).join('');
+  // A text search force-expands matching clusters so hits are visible; the user's
+  // manual collapse state is preserved and restored once the search is cleared.
+  // Dropdown filters (incl. the default EN language) only narrow — they leave
+  // clusters collapsed so "collapsed by default" holds on first load.
+  const forceExpand = !!q;
+
+  body.innerHTML = clusterOrder
+    .map(cluster => {
+      const items = groups.get(cluster)!.sort((a, b) => {
+        const c = compare(a, b, state.sort.key);
+        return (c !== 0 ? c : a.keyword.localeCompare(b.keyword)) * state.sort.dir;
+      });
+      const isCollapsed = !forceExpand && state.collapsed.has(cluster);
+      const rowsHtml = isCollapsed ? '' : items.map(rowHtml).join('');
+      return groupHeader(cluster, items.length, isCollapsed) + rowsHtml;
+    })
+    .join('');
 
   // Count + empty state. Show "x of N" whenever any search/filter narrows the set.
   const filtered = q || f.language || f.intent || f.priority;
@@ -309,17 +349,17 @@ function wirePanel(panel: HTMLElement) {
     btn.addEventListener('click', () => openEditor(id, null, clustersOf(id), refresh)),
   );
 
-  // Reset.
-  panel.querySelector<HTMLElement>('[data-kw-reset]')?.addEventListener('click', async () => {
-    if (confirm('Reset keywords for this project back to the original list? This discards your edits.')) {
-      try { await resetKeywords(id); refresh(); }
-      catch (err) { alert(`Could not reset: ${(err as Error).message}`); }
-    }
-  });
-
-  // Row actions (delegated).
+  // Row actions + cluster collapse/expand (delegated).
   panel.querySelector<HTMLElement>('[data-kw-body]')!.addEventListener('click', e => {
     const target = e.target as HTMLElement;
+    const toggle = target.closest<HTMLElement>('[data-cluster-toggle]');
+    if (toggle) {
+      const cluster = toggle.dataset.clusterToggle!;
+      if (state.collapsed.has(cluster)) state.collapsed.delete(cluster);
+      else state.collapsed.add(cluster);
+      refresh();
+      return;
+    }
     const editBtn = target.closest<HTMLElement>('[data-kw-edit]');
     if (editBtn) {
       const kw = listKeywords(id).find(k => k.id === editBtn.dataset.kwEdit);

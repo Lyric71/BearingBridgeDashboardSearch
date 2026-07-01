@@ -1,17 +1,17 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import SeoNav from '../../components/SeoNav.astro';
 import { listProjects } from '../../lib/projects-db';
 import { listKeywordsGrouped } from '../../lib/keywords-db';
 
 const [projects, keywordsByProject] = await Promise.all([listProjects(), listKeywordsGrouped()]);
 
-// Sortable column headers. Keyword/cluster sort alphabetically; language/intent
-// group rows; priority sorts by its ordinal rank (see scripts/keywords.ts).
+// Rows are grouped by cluster (see scripts/keywordsTable.ts); these headers sort
+// within each cluster group. Priority sorts by ordinal rank; the rest A→Z.
 const COLUMNS = [
   { key: 'keyword', label: 'Keyword' },
   { key: 'language', label: 'Language' },
   { key: 'intent', label: 'Intent' },
-  { key: 'cluster', label: 'Cluster' },
   { key: 'priority', label: 'Priority' },
 ];
 ---
@@ -20,6 +20,7 @@ const COLUMNS = [
     <a href="/" class="link-muted mb-4 inline-block">&larr; Dashboard</a>
     <h1 class="font-heading text-3xl font-bold tracking-tight mb-2" style="color: var(--bbg-blue)">🔍 Keywords</h1>
     <p class="text-muted-foreground">Sortable, editable keyword list · <span data-active-project-name>this project</span> · <span class="text-muted-foreground/70">changes are saved to the shared database</span></p>
+    <SeoNav current="keywords" />
   </div>
 
   <!-- Server-rendered keywords for the client store to hydrate from. -->
@@ -54,7 +55,6 @@ const COLUMNS = [
           <div class="flex items-center gap-2">
             <span data-kw-count class="text-xs text-muted-foreground tabular-nums mr-1"></span>
             <button data-kw-add class="btn-primary">+ Add keyword</button>
-            <button data-kw-reset class="btn-outline text-xs py-2">Reset</button>
           </div>
         </div>
 

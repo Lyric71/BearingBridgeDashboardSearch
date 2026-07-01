@@ -1,6 +1,5 @@
-// Server-side keyword repository.
+// Server-side keyword repository. Supabase is the single source of truth.
 import { db } from './db';
-import seed from '../data/keywords.json';
 
 export interface Keyword {
   id: string;
@@ -62,22 +61,4 @@ export async function updateKeyword(id: string, patch: Partial<KeywordInput>): P
 export async function deleteKeyword(id: string): Promise<void> {
   const { error } = await db.from('keywords').delete().eq('id', id);
   if (error) throw new Error(error.message);
-}
-
-// Reset a single project's keywords back to the keywords.json seed.
-export async function resetKeywords(projectId: string): Promise<Keyword[]> {
-  const { error: delErr } = await db.from('keywords').delete().eq('project_id', projectId);
-  if (delErr) throw new Error(delErr.message);
-  const seedList = (seed.projects as Record<string, any[]>)[projectId] ?? [];
-  if (seedList.length) {
-    const rows = seedList.map(k => ({
-      project_id: projectId, legacy_id: k.id ?? null, keyword: k.keyword,
-      language: k.language ?? 'EN', intent: k.intent ?? null,
-      cluster: k.cluster ?? null, priority: k.priority ?? null,
-    }));
-    const { error } = await db.from('keywords').insert(rows);
-    if (error) throw new Error(error.message);
-  }
-  const grouped = await listKeywordsGrouped();
-  return grouped[projectId] ?? [];
 }

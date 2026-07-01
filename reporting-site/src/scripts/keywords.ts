@@ -102,12 +102,6 @@ export function duplicateKeyword(projectId: string, id: string): Keyword | null 
   return clone(copy);
 }
 
-// Reset a project's keywords back to the seed (async; callers await).
-export async function resetKeywords(projectId: string): Promise<void> {
-  const fresh = (await api(`/reset?project=${encodeURIComponent(projectId)}`, { method: 'POST' })) as Keyword[];
-  state[projectId] = fresh;
-}
-
 // Drop a deleted project's keywords from the cache (DB cascade handled the rest).
 export function purgeProjectKeywords(projectId: string) {
   if (state[projectId]) delete state[projectId];

@@ -1,5 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import SeoNav from '../../components/SeoNav.astro';
 import { marked } from 'marked';
 import { listProjects } from '../../lib/projects-db';
 import { listReports, listHistory, type SerpReport } from '../../lib/serp-db';
@@ -12,9 +13,10 @@ interface HistoryEntry {
   before: any; after: any;
 }
 
-// Per project: data/projects/<id>/competitors/*.md (a SERP report per keyword group).
-// Beyond Border Group falls back to the original seo/reports/*.md.
-// Headline KPIs live in the overview report under "## Headline" as bullet lines:
+// Per project: rows in the serp_reports table (one SERP report per keyword group).
+// Headline KPIs come from the overview report's indicators column; the parser
+// below is only a fallback for reports whose body still carries "## Headline"
+// bullet lines like:
 //   - **Keywords ranked in top 100:** 17/71
 // Pull them out so we can surface them as cards at the top of the page.
 function parseHeadline(raw: string) {
@@ -50,7 +52,9 @@ function buildGroups(reports: SerpReport[], history: HistoryEntry[]) {
     historyByCluster.set(h.cluster, list);
   }
 
-  const groups = reports.map(r => {
+  // The overview report is surfaced as the headline card above, so drop it from
+  // the collapsible group list to avoid a redundant "00 Overview" section.
+  const groups = reports.filter(r => !/overview/i.test(r.cluster)).map(r => {
   const cid = r.cluster;
   const raw = (r.content_md ?? '').replace(/\r\n?/g, '\n'); // normalize CRLF
   const lines = raw.split('\n');
@@ -111,6 +115,7 @@ const byProject = await Promise.all(
     <a href="/" class="link-muted mb-4 inline-block">&larr; Dashboard</a>
     <h1 class="font-heading text-3xl font-bold tracking-tight mb-2" style="color: var(--bbg-red)">⚔️ Competitor Rankings</h1>
     <p class="text-muted-foreground">SERP rank tracking vs top 10 competitors per keyword group · <span data-active-project-name>this project</span></p>
+    <SeoNav current="competitors" />
   </div>
 
   {byProject.map(p => {
@@ -147,7 +152,7 @@ const byProject = await Promise.all(
   {groups.length === 0 ? (
     <div class="ui-empty">
       <div class="mb-1">No competitor reports for <span class="font-semibold" style={`color: ${p.color}`}>{p.name}</span> yet.</div>
-      <div class="text-xs">Add <code>data/projects/{p.id}/competitors/*.md</code></div>
+      <div class="text-xs">Run the SERP ranking script to populate the <code>serp_reports</code> table for this project.</div>
     </div>
   ) : (
     groups.map(g => (

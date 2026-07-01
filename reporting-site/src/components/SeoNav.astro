@@ -1,0 +1,30 @@
+---
+// Sub-navigation shared across the three SEO panels so users can jump
+// quickly between Keywords, Competitors, and Content Plan.
+interface Props {
+  current: 'keywords' | 'competitors' | 'content';
+}
+const { current } = Astro.props;
+
+const TABS = [
+  { key: 'keywords',    href: '/seo/keywords',    label: '🔍 Keywords',    color: 'var(--bbg-blue)' },
+  { key: 'competitors', href: '/seo/competitors', label: '⚔️ Competitors', color: 'var(--bbg-red)' },
+  { key: 'content',     href: '/seo/content',     label: '✍️ Content Plan', color: 'var(--bbg-purple)' },
+] as const;
+---
+<nav class="flex flex-wrap items-center gap-1.5 mt-4 border-b border-border pb-3">
+  {TABS.map(t => (
+    t.key === current ? (
+      <span
+        class="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-semibold text-white"
+        style={`background-color: ${t.color}`}
+        aria-current="page"
+      >{t.label}</span>
+    ) : (
+      <a
+        href={t.href}
+        class="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+      >{t.label}</a>
+    )
+  ))}
+</nav>
