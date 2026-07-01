@@ -8,10 +8,6 @@ export interface SerpReport {
   content_md: string;
   indicators: Record<string, number> | null;
 }
-export interface SerpHistoryEntry {
-  cluster: string; label: string | null; ts: string;
-  before: any; after: any;
-}
 
 export async function listReports(projectId: string): Promise<SerpReport[]> {
   const { data, error } = await db
@@ -31,4 +27,23 @@ export async function listHistory(projectId: string): Promise<SerpHistoryEntry[]
     .order('ts');
   if (error) throw new Error(error.message);
   return data as SerpHistoryEntry[];
+}
+
+// Per-keyword refresh history: one row per keyword (the latest refresh), holding
+// the previous refresh's rank (before) and this refresh's rank (after).
+export interface KeywordHistoryEntry {
+  cluster: string; keyword: string;
+  before_rank: number | null; after_rank: number | null;
+  before_ts: string | null; after_ts: string | null;
+}
+
+export async function listKeywordHistory(projectId: string): Promise<KeywordHistoryEntry[]> {
+  const { data, error } = await db
+    .from('serp_keyword_history')
+    .select('cluster,keyword,before_rank,after_rank,before_ts,after_ts')
+    .eq('project_id', projectId)
+    .order('cluster')
+    .order('keyword');
+  if (error) throw new Error(error.message);
+  return data as KeywordHistoryEntry[];
 }

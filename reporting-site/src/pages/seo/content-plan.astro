@@ -1,0 +1,116 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import SeoNav from '../../components/SeoNav.astro';
+import { marked } from 'marked';
+import { listProjects } from '../../lib/projects-db';
+import { listKeywordsGrouped } from '../../lib/keywords-db';
+import { listContentPlans } from '../../lib/content-plan-db';
+
+const [projects, keywordsByProject, plans] = await Promise.all([
+  listProjects(), listKeywordsGrouped(), listContentPlans(),
+]);
+
+// Group saved plans by project id (null-project plans land under '').
+const plansByProject: Record<string, typeof plans> = {};
+for (const p of plans) (plansByProject[p.project_id ?? ''] ??= []).push(p);
+
+const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('en-CA');
+---
+<Layout title="Content Plan" scoped module="seo">
+  <div class="mb-8">
+    <a href="/" class="link-muted mb-4 inline-block">&larr; Dashboard</a>
+    <h1 class="font-heading text-3xl font-bold tracking-tight mb-2" style="color: var(--bbg-purple)">🧭 Content Plan</h1>
+    <p class="text-muted-foreground">Generate a competitive content brief for a single keyword · <span data-active-project-name>this project</span> · <span class="text-muted-foreground/70">live SERP + Claude, saved to the shared database</span></p>
+    <SeoNav current="content-plan" />
+  </div>
+
+  {projects.map(p => {
+    const kws = keywordsByProject[p.id] ?? [];
+    const saved = plansByProject[p.id] ?? [];
+    return (
+      <div data-project-panel={p.id} class="hidden">
+        <div data-cp-panel data-project={p.id} data-project-name={p.name}>
+          <!-- Keyword datalist + intent lookup for this project -->
+          <script type="application/json" data-cp-keywords set:html={JSON.stringify(
+            kws.map(k => ({ keyword: k.keyword, intent: k.intent, language: k.language }))
+          )}></script>
+
+          <!-- Generate form -->
+          <div class="ui-card p-5 mb-6">
+            <form data-cp-form class="grid gap-4 sm:grid-cols-2">
+              <div class="sm:col-span-2">
+                <label class="ui-eyebrow block mb-1">Keyword</label>
+                <input
+                  name="keyword"
+                  list={`cp-kw-${p.id}`}
+                  required
+                  autocomplete="off"
+                  placeholder="Pick a tracked keyword or type one…"
+                  class="ui-input w-full"
+                />
+                <datalist id={`cp-kw-${p.id}`}>
+                  {kws.map(k => <option value={k.keyword}>{k.intent ? `${k.intent}` : ''}</option>)}
+                </datalist>
+              </div>
+              <div>
+                <label class="ui-eyebrow block mb-1">Language</label>
+                <select name="language" class="ui-select w-full">
+                  <option value="EN">EN</option>
+                  <option value="FR">FR</option>
+                </select>
+              </div>
+              <div>
+                <label class="ui-eyebrow block mb-1">Target URL <span class="text-muted-foreground/70 normal-case font-normal">(optional)</span></label>
+                <input name="targetUrl" type="url" placeholder="https://…" class="ui-input w-full" />
+              </div>
+              <input type="hidden" name="intent" />
+              <div class="sm:col-span-2 flex items-center gap-3">
+                <button type="submit" data-cp-submit class="btn-primary">✨ Generate content plan</button>
+                <span data-cp-phase class="text-xs text-muted-foreground"></span>
+              </div>
+            </form>
+          </div>
+
+          <!-- Live generation output (hidden until a run starts) -->
+          <div data-cp-output class="hidden ui-card overflow-hidden mb-8">
+            <div class="px-6 py-4 border-b border-border flex items-center justify-between bg-muted">
+              <h2 data-cp-output-title class="font-semibold">Generating…</h2>
+              <span data-cp-signals class="text-xs text-muted-foreground tabular-nums"></span>
+            </div>
+            <div data-cp-output-body class="p-6 prose max-w-none overflow-x-auto"></div>
+          </div>
+
+          <!-- Saved briefs for this project -->
+          <h2 class="ui-eyebrow mb-3">Saved briefs <span class="text-muted-foreground font-normal normal-case">· newest first</span></h2>
+          <div data-cp-saved>
+            {saved.length === 0 ? (
+              <div class="ui-empty">
+                <div class="mb-1">No content plans for <span class="font-semibold" style={`color: ${p.color}`}>{p.name}</span> yet.</div>
+                <div class="text-xs">Pick a keyword above and click <span class="font-semibold">Generate content plan</span>.</div>
+              </div>
+            ) : (
+              saved.map(pl => (
+                <details class="mb-4 ui-card overflow-hidden" data-cp-saved-item={`${pl.keyword}||${pl.language}`}>
+                  <summary class="px-6 py-4 border-b border-border flex items-center justify-between bg-muted cursor-pointer">
+                    <span class="font-semibold capitalize">{pl.keyword}</span>
+                    <span class="text-xs text-muted-foreground">
+                      {pl.language}
+                      {pl.indicators?.volume != null ? ` · ${pl.indicators.volume.toLocaleString('en-US')}/mo` : ''}
+                      {` · ${fmtDate(pl.updated_at)}`}
+                    </span>
+                  </summary>
+                  <div class="p-6 prose max-w-none overflow-x-auto" set:html={marked(pl.plan_md)} />
+                </details>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  })}
+</Layout>
+
+<script>
+  import { mountContentPlan } from '../../scripts/contentPlan';
+  mountContentPlan();
+</script>

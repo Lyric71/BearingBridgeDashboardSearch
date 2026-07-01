@@ -1,15 +1,16 @@
 ---
-// Sub-navigation shared across the three SEO panels so users can jump
-// quickly between Keywords, Competitors, and Content Plan.
+// Sub-navigation shared across the SEO panels so users can jump quickly
+// between Keywords, Competitors, Content Plan, and Content Reports.
 interface Props {
-  current: 'keywords' | 'competitors' | 'content';
+  current: 'keywords' | 'competitors' | 'content-plan' | 'content';
 }
 const { current } = Astro.props;
 
 const TABS = [
-  { key: 'keywords',    href: '/seo/keywords',    label: '🔍 Keywords',    color: 'var(--bbg-blue)' },
-  { key: 'competitors', href: '/seo/competitors', label: '⚔️ Competitors', color: 'var(--bbg-red)' },
-  { key: 'content',     href: '/seo/content',     label: '✍️ Content Plan', color: 'var(--bbg-purple)' },
+  { key: 'keywords',     href: '/seo/keywords',     label: '🔍 Keywords',        color: 'var(--bbg-blue)' },
+  { key: 'competitors',  href: '/seo/competitors',  label: '⚔️ Competitors',     color: 'var(--bbg-red)' },
+  { key: 'content-plan', href: '/seo/content-plan', label: '🧭 Content Plan',    color: 'var(--bbg-purple)' },
+  { key: 'content',      href: '/seo/content',      label: '✍️ Content Reports', color: 'var(--bbg-purple)' },
 ] as const;
 ---
 <nav class="flex flex-wrap items-center gap-1.5 mt-4 border-b border-border pb-3">
