@@ -3,15 +3,9 @@ import Layout from '../../layouts/Layout.astro';
 import SeoNav from '../../components/SeoNav.astro';
 import { marked } from 'marked';
 import { listProjects } from '../../lib/projects-db';
-import { listReports, listHistory, type SerpReport } from '../../lib/serp-db';
+import { listReports, listKeywordHistory, type SerpReport, type KeywordHistoryEntry } from '../../lib/serp-db';
 
 const projects = await listProjects();
-
-// A refresh record (serp_history table); empty until the SERP script writes one.
-interface HistoryEntry {
-  ts: string; cluster: string; label: string | null;
-  before: any; after: any;
-}
 
 // Per project: rows in the serp_reports table (one SERP report per keyword group).
 // Headline KPIs come from the overview report's indicators column; the parser
@@ -31,7 +25,7 @@ function parseHeadline(raw: string) {
   return out;
 }
 
-function buildGroups(reports: SerpReport[], history: HistoryEntry[]) {
+function buildGroups(reports: SerpReport[], history: KeywordHistoryEntry[]) {
   // Headline KPIs come from the overview report's parsed indicators (robust,
   // no markdown re-parsing). Falls back to parsing the body if absent.
   const overview = reports.find(r => /overview/i.test(r.cluster));
@@ -44,8 +38,8 @@ function buildGroups(reports: SerpReport[], history: HistoryEntry[]) {
       ]
     : overview ? parseHeadline(overview.content_md) : [];
 
-  // Refresh history (newest first) grouped by cluster id.
-  const historyByCluster = new Map<string, HistoryEntry[]>();
+  // Per-keyword refresh history grouped by cluster id.
+  const historyByCluster = new Map<string, KeywordHistoryEntry[]>();
   for (const h of history) {
     const list = historyByCluster.get(h.cluster) ?? [];
     list.push(h);
@@ -75,7 +69,10 @@ function buildGroups(reports: SerpReport[], history: HistoryEntry[]) {
   // Parse BBG summary from rank table
   // Columns: | Keyword | Volume | CPC | Comp. | #1 Domain | beyondbordergroup.com | ...
   // After split on '|': [0]='', [1]=Keyword, [2]=Volume, [3]=CPC, [4]=Comp, [5]=#1Domain, [6]=BBG
-  const tableLines = lines.filter(l => l.startsWith('| ') && !l.startsWith('| Keyword') && !l.startsWith('|---'));
+  // Only count rows from the rank table (rankSection), not the "Top 10
+  // Competitors" table further down — otherwise both tables' rows are summed
+  // and the keyword count is inflated.
+  const tableLines = rankSection.split('\n').filter(l => l.startsWith('| ') && !l.startsWith('| Keyword') && !l.startsWith('|---'));
   let bbgPage1 = 0, bbgPage2 = 0, bbgMissing = 0;
   for (const line of tableLines) {
     const cols = line.split('|').map(c => c.trim());
@@ -94,19 +91,30 @@ function buildGroups(reports: SerpReport[], history: HistoryEntry[]) {
     rankHtml: marked(rankSection),
     scoreHtml: marked(scoreSection),
     stats: { page1: bbgPage1, page2: bbgPage2, missing: bbgMissing, total: tableLines.length },
-    history: (historyByCluster.get(cid) ?? []).slice().reverse(),
+    history: historyByCluster.get(cid) ?? [],
   };
   });
+
+  // "Keywords ranked in top 10" — derived from the already-parsed per-cluster
+  // rank cells: page1 = bold (top 3) + plain (top 10). Summed across non-overview
+  // groups so the card works off stored report data without a pipeline change.
+  if (headline.length > 0) {
+    const top10 = groups.reduce((s, g) => s + g.stats.page1, 0);
+    const total = ind?.total ?? groups.reduce((s, g) => s + g.stats.total, 0);
+    // Insert right after "Keywords ranked in top 100".
+    headline.splice(1, 0, { label: 'Keywords ranked in top 10', value: `${top10}/${total}` });
+  }
+
   return { groups, headline };
 }
 
 // Accent colours for the headline KPI cards (cycled in order).
-const HEADLINE_COLORS = ['var(--bbg-blue)', 'var(--bbg-gray-dark)', 'var(--bbg-red)'];
+const HEADLINE_COLORS = ['var(--bbg-blue)', '#16a34a', 'var(--bbg-gray-dark)', 'var(--bbg-red)'];
 
 const byProject = await Promise.all(
   projects.map(async p => {
-    const [reports, history] = await Promise.all([listReports(p.id), listHistory(p.id)]);
-    return { ...p, ...buildGroups(reports, history as HistoryEntry[]) };
+    const [reports, history] = await Promise.all([listReports(p.id), listKeywordHistory(p.id)]);
+    return { ...p, ...buildGroups(reports, history) };
   }),
 );
 ---
@@ -122,15 +130,23 @@ const byProject = await Promise.all(
     const groups = p.groups;
     const headline = p.headline;
     const canRefresh = p.id === 'chinawebfoundry';
-    const HEADLINE_KEYS = ['ranked', 'covered', 'index'];
+    const HEADLINE_KEYS = ['ranked', 'rankedTop10', 'covered', 'index'];
     return (
     <div data-project-panel={p.id} class="hidden" data-competitors-panel data-project={p.id}>
   {headline.length > 0 ? (
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-10">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-10">
       {headline.map((s, i) => (
-        <div class="ui-card p-6 text-center">
+        <div class="ui-card p-6 text-center flex flex-col items-center">
           <div class="text-3xl font-bold mb-2 tabular-nums" data-kpi={HEADLINE_KEYS[i]} style={`color: ${HEADLINE_COLORS[i % HEADLINE_COLORS.length]}`}>{s.value}</div>
           <div class="text-xs text-muted-foreground uppercase tracking-wide">{s.label}</div>
+          {HEADLINE_KEYS[i] === 'rankedTop10' && (
+            <button type="button" data-view-top10
+              class="btn-outline text-xs py-1 px-3 mt-3 font-semibold"
+              style="border-color: #16a34a; color: #16a34a"
+              title="Open the clusters and highlight the keywords ranked in the top 10">
+              View
+            </button>
+          )}
         </div>
       ))}
     </div>
@@ -160,16 +176,19 @@ const byProject = await Promise.all(
         <summary class="flex items-center justify-between px-6 py-4 cursor-pointer select-none hover:bg-muted transition-colors" style="list-style: none">
           <div class="flex items-center gap-4">
             <span class="text-lg font-bold">{g.title}</span>
+            <span data-count-badge class="text-xs font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground whitespace-nowrap">
+              {g.stats.total} {g.stats.total === 1 ? 'keyword' : 'keywords'}
+            </span>
             <span class="text-xs text-muted-foreground">{g.meta.split('|')[0]?.replace('Date:', '').trim()}</span>
           </div>
           <div class="flex items-center gap-3">
             {g.stats.page1 > 0 && (
-              <span class="text-xs font-semibold px-2 py-1 rounded-full text-white" style="background: var(--bbg-blue)">
+              <span data-p1-badge class="text-xs font-semibold px-2 py-1 rounded-full text-white" style="background: var(--bbg-blue)">
                 p1: {g.stats.page1}/{g.stats.total}
               </span>
             )}
             {g.stats.page1 === 0 && (
-              <span class="text-xs font-semibold px-2 py-1 rounded-full text-white" style="background: var(--bbg-gray-muted)">
+              <span data-p1-badge class="text-xs font-semibold px-2 py-1 rounded-full text-white" style="background: var(--bbg-gray-muted)">
                 not on p1
               </span>
             )}
@@ -190,35 +209,23 @@ const byProject = await Promise.all(
           <!-- Live refresh progress (filled by competitorsRefresh.ts) -->
           <div data-refresh-zone class="hidden px-6 pt-5"></div>
 
-          <!-- Refresh history: before → after for every indicator -->
+          <!-- Refresh history: previous → current rank, per keyword -->
           {g.history.length > 0 && (
             <div data-history class="px-6 pt-5 pb-2">
-              <h3 class="ui-eyebrow mb-3">Refresh History</h3>
-              <div class="space-y-2">
+              <h3 class="ui-eyebrow mb-3">Refresh History <span class="text-muted-foreground font-normal normal-case">· previous → current rank</span></h3>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
                 {g.history.map(h => {
-                  const cb = h.before.cluster, ca = h.after.cluster;
-                  const metrics = [
-                    { k: 'We rank', b: cb?.ranked, a: ca?.ranked, suf: ca ? `/${ca.n}` : '' },
-                    { k: 'Content', b: cb?.covered, a: ca?.covered, suf: ca ? `/${ca.n}` : '' },
-                    { k: 'Cluster index', b: cb?.our_index, a: ca?.our_index, suf: '' },
-                    { k: 'Overall index', b: h.before.global?.index, a: h.after.global?.index, suf: '' },
-                  ];
+                  // Lower rank number is better: current < previous ⇒ improved (green).
+                  const b = h.before_rank, a = h.after_rank;
+                  const dir = b == null || a == null || a === b ? 0 : a < b ? 1 : -1;
+                  const color = dir > 0 ? '#16a34a' : dir < 0 ? 'var(--bbg-red)' : 'var(--bbg-gray-muted)';
+                  const fmt = (r: number | null) => (r == null ? '—' : `#${r}`);
                   return (
-                    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-border px-3 py-2">
-                      <span class="text-xs font-semibold text-gray-500 tabular-nums">{h.ts}</span>
-                      {metrics.map(m => {
-                        const bn = Number(m.b), an = Number(m.a);
-                        const dir = isNaN(bn) || isNaN(an) || an === bn ? 0 : an > bn ? 1 : -1;
-                        const color = dir > 0 ? '#16a34a' : dir < 0 ? 'var(--bbg-red)' : 'var(--bbg-gray-muted)';
-                        return (
-                          <span class="text-xs text-gray-600">
-                            <span class="text-gray-400">{m.k}:</span>{' '}
-                            <span class="tabular-nums">{m.b ?? '—'}{m.suf}</span>
-                            <span class="mx-1" style={`color: ${color}`}>→</span>
-                            <span class="tabular-nums font-semibold" style={`color: ${color}`}>{m.a ?? '—'}{m.suf}</span>
-                          </span>
-                        );
-                      })}
+                    <div class="flex items-center gap-2 text-xs py-0.5">
+                      <span class="text-gray-600 truncate">{h.keyword}</span>
+                      <span class="ml-auto tabular-nums text-gray-400">{fmt(b)}</span>
+                      <span style={`color: ${color}`}>→</span>
+                      <span class="tabular-nums font-semibold" style={`color: ${color}`}>{fmt(a)}</span>
                     </div>
                   );
                 })}
@@ -230,7 +237,7 @@ const byProject = await Promise.all(
           <div class="px-6 pt-5 pb-2">
             <h3 class="ui-eyebrow mb-3">Keyword Rankings</h3>
             <div class="overflow-x-auto rounded-xl border border-border">
-              <div class="rank-table prose max-w-none" set:html={g.rankHtml} />
+              <div data-rank-table class="rank-table prose max-w-none" set:html={g.rankHtml} />
             </div>
           </div>
 
@@ -238,7 +245,7 @@ const byProject = await Promise.all(
           <div class="px-6 pb-6 pt-2">
             <h3 class="ui-eyebrow mb-3">Top 10 Competitors (auto-discovered)</h3>
             <div class="overflow-x-auto rounded-xl border border-border">
-              <div class="prose max-w-none" set:html={g.scoreHtml} />
+              <div data-score-table class="prose max-w-none" set:html={g.scoreHtml} />
             </div>
           </div>
         </div>
@@ -259,6 +266,11 @@ const byProject = await Promise.all(
   /* Rank colour coding */
   .rank-table :global(td) { white-space: nowrap; }
   .rank-table :global(strong) { color: #16a34a; font-weight: 700; } /* top 3 = green */
+
+  /* Click a row to toggle a selection colour */
+  .rank-table :global(tbody tr) { cursor: pointer; transition: background-color 0.12s; }
+  .rank-table :global(tbody tr:hover) { background: rgba(6, 147, 227, 0.06); }
+  .rank-table :global(tbody tr.rank-row-selected) { background: rgba(6, 147, 227, 0.16) !important; }
 
   details summary::-webkit-details-marker { display: none; }
 </style>
